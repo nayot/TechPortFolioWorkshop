@@ -63,7 +63,7 @@
 
   async function bootstrap() {
     try {
-      const cfg = await api('/api/config');
+      const cfg = await api('api/config');
       state.googleClientId = cfg.googleClientId || '';
     } catch (err) {
       showSigninError('โหลดการตั้งค่าไม่สำเร็จ');
@@ -71,7 +71,7 @@
     }
 
     try {
-      const me = await api('/api/auth/me');
+      const me = await api('api/auth/me');
       state.user = me.user;
       showPortfolio();
     } catch (err) {
@@ -133,7 +133,7 @@
 
   async function onGoogleCredential(response) {
     try {
-      const data = await api('/api/auth/google', {
+      const data = await api('api/auth/google', {
         method: 'POST',
         body: JSON.stringify({ credential: response.credential })
       });
@@ -146,7 +146,7 @@
   }
 
   async function logout() {
-    try { await api('/api/auth/logout', { method: 'POST' }); } catch (_) {}
+    try { await api('api/auth/logout', { method: 'POST' }); } catch (_) {}
     state.user = null;
     state.history = [];
     location.reload();
@@ -233,7 +233,7 @@
   }
 
   async function callSuggest(payload) {
-    return api('/api/suggest', { method: 'POST', body: JSON.stringify(payload) });
+    return api('api/suggest', { method: 'POST', body: JSON.stringify(payload) });
   }
 
   async function generate() {
