@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Technology Portfolio · Maejo Deep Mentorship</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <main class="container">
+
+    <!-- Sign-in card -->
+    <section id="signinCard" class="card signin-card" hidden>
+      <h1 class="title">Technology Portfolio</h1>
+      <p class="subtitle">โครงการ Deep Mentorship · มหาวิทยาลัยแม่โจ้ · ปีงบประมาณ 2569</p>
+      <p class="signin-text">กรุณาเข้าสู่ระบบด้วยบัญชี Google เพื่อเริ่มต้นใช้งาน</p>
+      <div id="googleBtn" class="google-btn"></div>
+      <p id="signinError" class="error-box" hidden></p>
+    </section>
+
+    <!-- Portfolio (main) card -->
+    <section id="portfolioCard" hidden>
+
+      <!-- Header / user info -->
+      <div class="user-row">
+        <span id="userInfo" class="user-info"></span>
+        <button id="logoutBtn" type="button" class="link-btn">ออกจากระบบ</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress" aria-label="ขั้นตอนที่ 1 จาก 6">
+        <div class="progress-segment active"></div>
+        <div class="progress-segment"></div>
+        <div class="progress-segment"></div>
+        <div class="progress-segment"></div>
+        <div class="progress-segment"></div>
+        <div class="progress-segment"></div>
+      </div>
+      <div class="step-label">ขั้นตอนที่ 1 จาก 6 — โปรไฟล์</div>
+
+      <h1 class="title">Technology Portfolio</h1>
+      <p class="subtitle">โครงการ Deep Mentorship · มหาวิทยาลัยแม่โจ้ · ปีงบประมาณ 2569</p>
+
+      <!-- Input card -->
+      <div class="card">
+        <label class="field">
+          <span class="field-label">ชื่อ-ตำแหน่ง</span>
+          <input id="nameInput" type="text" placeholder="เช่น ผศ.ดร.สมชาย ใจดี" />
+        </label>
+
+        <label class="field">
+          <span class="field-label">ความเชี่ยวชาญ</span>
+          <input id="expertiseInput" type="text" placeholder="เช่น วิทยาศาสตร์อาหาร เทคโนโลยีการหมัก" />
+        </label>
+
+        <div class="field">
+          <span class="field-label">อัปโหลด CV (PDF หรือ TXT ไม่เกิน 2MB)</span>
+          <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="อัปโหลด CV">
+            <p>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
+            <p class="hint">รองรับ .pdf และ .txt</p>
+            <input id="fileInput" type="file" accept=".pdf,.txt,application/pdf,text/plain" hidden />
+          </div>
+          <div id="fileInfo" class="file-info" hidden>
+            <span id="fileName"></span>
+            <button id="fileRemove" type="button" class="link-btn">✕ ลบไฟล์</button>
+          </div>
+        </div>
+
+        <div class="lang-toggle" role="group" aria-label="ภาษา">
+          <button type="button" class="lang-btn active" data-lang="th">🇹🇭 ภาษาไทย</button>
+          <button type="button" class="lang-btn" data-lang="en">🇬🇧 English</button>
+        </div>
+
+        <button id="generateBtn" type="button" class="primary-btn">
+          <span class="btn-label">✨ สร้างข้อเสนอแนะโปรไฟล์</span>
+          <span class="btn-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <!-- Error box -->
+      <div id="errorBox" class="error-box" hidden></div>
+
+      <!-- Result card -->
+      <div id="resultCard" class="card result-card" hidden>
+        <div class="result-header">
+          <h2>✨ ข้อเสนอแนะจาก AI</h2>
+          <button id="copyBtn" type="button" class="link-btn">📋 คัดลอก</button>
+        </div>
+        <div id="resultText" class="result-text"></div>
+        <hr class="divider" />
+        <div class="followup-row">
+          <input id="followupInput" type="text" placeholder="ถามต่อหรือขอปรับแก้..." />
+          <button id="followupBtn" type="button" class="secondary-btn">ส่ง</button>
+        </div>
+      </div>
+
+      <!-- Bottom row -->
+      <div class="bottom-row">
+        <button id="resetBtn" type="button" class="secondary-btn">🔄 เริ่มใหม่</button>
+        <button id="nextStepBtn" type="button" class="next-btn" disabled>ขั้นตอนถัดไป: ทักษะ →</button>
+      </div>
+
+      <footer class="footer">
+        มหาวิทยาลัยแม่โจ้ · Deep Mentorship Program · FY2569
+      </footer>
+
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

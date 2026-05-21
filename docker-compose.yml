@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    image: maejo-portfolio:latest
+    container_name: maejo-portfolio
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+    ports:
+      # Bind only to the host loopback so the container is reachable
+      # exclusively via your host's reverse proxy (nginx/Caddy/Traefik).
+      - "127.0.0.1:3000:3000"

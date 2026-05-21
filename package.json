@@ -1,0 +1,21 @@
+{
+  "name": "maejo-portfolio",
+  "version": "1.0.0",
+  "description": "Maejo Deep Mentorship — Technology Portfolio (Step 1 Profile demo)",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "express-session": "^1.18.0",
+    "google-auth-library": "^9.14.0"
+  }
+}
