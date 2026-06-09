@@ -4,7 +4,7 @@ import { api } from '../api.js';
 function EditableText({ value, onChange, rows = 4, placeholder = '' }) {
   return (
     <textarea
-      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-indigo-50"
+      className="w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold bg-parchment text-navy"
       rows={rows}
       value={value}
       onChange={e => onChange(e.target.value)}
@@ -16,13 +16,13 @@ function EditableText({ value, onChange, rows = 4, placeholder = '' }) {
 function Section({ title, onEdit, editing, children }) {
   return (
     <section className="mb-8">
-      <div className="flex items-center justify-between border-b border-indigo-100 pb-2 mb-3">
-        <h2 className="text-lg font-bold text-indigo-700">{title}</h2>
+      <div className="flex items-center justify-between border-b-2 border-gold/30 pb-2 mb-3">
+        <h2 className="text-base font-bold text-navy tracking-wide">{title}</h2>
         {onEdit && (
           <button
             onClick={onEdit}
-            className={`text-xs px-2 py-1 rounded transition-colors ${
-              editing ? 'bg-indigo-100 text-indigo-700' : 'text-indigo-400 hover:text-indigo-600'
+            className={`text-xs px-2 py-1 rounded transition-colors border ${
+              editing ? 'bg-gold-pale border-gold text-navy' : 'border-warm-border text-warm-muted hover:text-navy hover:border-navy'
             }`}
           >
             {editing ? '✓ เสร็จแล้ว' : '✏️ แก้ไข'}
@@ -203,20 +203,20 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between bg-white sticky top-0 z-10">
-        <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">← กลับแก้ไข</button>
-        <h2 className="text-sm font-semibold text-gray-900">Tech Portfolio ฉบับสมบูรณ์</h2>
+      <div className="border-b-2 border-gold/40 px-4 py-3 flex items-center justify-between bg-navy sticky top-0 z-10">
+        <button onClick={onBack} className="text-sm text-gold-light/70 hover:text-gold transition-colors">← กลับแก้ไข</button>
+        <h2 className="text-sm font-bold text-white tracking-wide">Tech Portfolio ฉบับสมบูรณ์</h2>
         <div className="flex gap-2">
           <button
             onClick={() => setShowBrief(v => !v)}
-            className="px-3 py-1.5 border border-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-50"
+            className="px-3 py-1.5 border border-gold/50 text-gold-light text-sm rounded-lg hover:bg-white/10 transition-colors"
           >
             📊 Infographic Brief
           </button>
           <button
             onClick={exportToGoogleDocs}
             disabled={exporting}
-            className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            className="px-3 py-1.5 bg-gold hover:bg-gold/90 text-navy text-sm rounded-lg font-semibold disabled:opacity-50 transition-colors"
           >
             {exporting ? 'กำลัง export...' : '📄 Export to Google Docs'}
           </button>
@@ -236,14 +236,14 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           )}
 
           {showBrief && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
+            <div className="bg-parchment border-2 border-gold/40 rounded-xl p-4 mb-6">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium text-gray-700">Infographic Brief (สำหรับ ChatGPT)</p>
-                <button onClick={copyBrief} className="text-xs text-indigo-600 hover:text-indigo-800">
+                <p className="text-sm font-semibold text-navy">Infographic Brief (สำหรับ ChatGPT)</p>
+                <button onClick={copyBrief} className="text-xs text-gold hover:text-gold/70 border border-gold/40 px-2 py-1 rounded transition-colors">
                   {briefCopied ? '✅ คัดลอกแล้ว' : '📋 คัดลอก'}
                 </button>
               </div>
-              <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono overflow-auto max-h-64">
+              <pre className="text-xs text-warm-muted whitespace-pre-wrap font-mono overflow-auto max-h-64">
                 {buildMarkdownBrief(draft, project)}
               </pre>
             </div>

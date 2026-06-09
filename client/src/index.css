@@ -1,7 +1,25 @@
 @import "tailwindcss";
 
+@theme {
+  --color-navy:        #1C2B4B;
+  --color-navy-dark:   #131D33;
+  --color-navy-hover:  #253660;
+  --color-gold:        #C4923A;
+  --color-gold-light:  #EDD9A3;
+  --color-gold-pale:   #F7F0DC;
+  --color-cream:       #F3EDE0;
+  --color-parchment:   #FDFAF4;
+  --color-warm-border: #D6C9A8;
+  --color-warm-muted:  #8C7D62;
+}
+
 @layer base {
   body {
     font-family: 'Sarabun', system-ui, sans-serif;
+    background-color: #F3EDE0;
+    background-image:
+      linear-gradient(rgba(180,155,100,0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(180,155,100,0.10) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
 }

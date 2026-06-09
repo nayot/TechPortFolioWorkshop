@@ -44,7 +44,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-400">
+      <div className="min-h-screen flex items-center justify-center text-warm-muted">
         กำลังโหลด...
       </div>
     );
@@ -53,7 +53,7 @@ export default function App() {
   if (!user) return <LoginPage />;
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen">
       <Header
         user={user}
         onLogout={handleLogout}

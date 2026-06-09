@@ -8,8 +8,8 @@ export default function ProjectListPage({ onOpen }) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [showNew, setShowNew] = useState(false);
-  const [deleting, setDeleting] = useState(null); // id of project being deleted
-  const [confirmDelete, setConfirmDelete] = useState(null); // project to confirm
+  const [deleting, setDeleting] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     api.get('/api/projects')
@@ -59,22 +59,25 @@ export default function ProjectListPage({ onOpen }) {
 
   return (
     <div className="max-w-xl mx-auto py-10 px-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Portfolio ของฉัน</h2>
-      <p className="text-sm text-gray-500 mb-6">บันทึกใน Google Drive ของคุณ</p>
+      <div className="mb-8 text-center">
+        <div className="w-12 h-1 bg-gold mx-auto rounded-full mb-4" />
+        <h2 className="text-2xl font-bold text-navy mb-1">Portfolio ของฉัน</h2>
+        <p className="text-sm text-warm-muted">บันทึกใน Google Drive ของคุณ</p>
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3 mb-4">{error}</div>
       )}
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">กำลังโหลด...</div>
+        <div className="text-center py-12 text-warm-muted">กำลังโหลด...</div>
       ) : (
         <div className="space-y-3">
           {projects.map(p => (
-            <div key={p.id} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 transition-colors">
+            <div key={p.id} className="bg-parchment border border-warm-border rounded-xl p-4 hover:border-gold transition-colors">
               {confirmDelete?.id === p.id ? (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-700">ต้องการลบ <strong>{p.name.replace('.techport.json', '')}</strong> ใช่ไหม? การดำเนินการนี้ไม่สามารถยกเลิกได้</p>
+                  <p className="text-sm text-navy">ต้องการลบ <strong>{p.name.replace('.techport.json', '')}</strong> ใช่ไหม? การดำเนินการนี้ไม่สามารถยกเลิกได้</p>
                   <div className="flex gap-2">
                     <button
                       onClick={() => deleteProject(p)}
@@ -83,10 +86,7 @@ export default function ProjectListPage({ onOpen }) {
                     >
                       {deleting === p.id ? 'กำลังลบ...' : 'ยืนยันลบ'}
                     </button>
-                    <button
-                      onClick={() => setConfirmDelete(null)}
-                      className="px-3 py-1.5 text-gray-500 text-sm hover:text-gray-700"
-                    >
+                    <button onClick={() => setConfirmDelete(null)} className="px-3 py-1.5 text-warm-muted text-sm hover:text-navy">
                       ยกเลิก
                     </button>
                   </div>
@@ -94,20 +94,20 @@ export default function ProjectListPage({ onOpen }) {
               ) : (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{p.name.replace('.techport.json', '')}</p>
-                    <p className="text-xs text-gray-400">แก้ไขล่าสุด {formatDate(p.modifiedTime)}</p>
+                    <p className="text-sm font-semibold text-navy">{p.name.replace('.techport.json', '')}</p>
+                    <p className="text-xs text-warm-muted">แก้ไขล่าสุด {formatDate(p.modifiedTime)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setConfirmDelete(p)}
-                      className="px-2 py-1.5 text-gray-400 text-sm rounded-lg hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="px-2 py-1.5 text-warm-muted text-sm rounded-lg hover:text-red-500 hover:bg-red-50 transition-colors"
                       title="ลบ Portfolio"
                     >
                       🗑
                     </button>
                     <button
                       onClick={() => openProject(p)}
-                      className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                      className="px-4 py-1.5 bg-navy hover:bg-navy-hover text-white text-sm rounded-lg transition-colors font-medium"
                     >
                       เปิด
                     </button>
@@ -118,18 +118,18 @@ export default function ProjectListPage({ onOpen }) {
           ))}
 
           {projects.length === 0 && !showNew && (
-            <div className="text-center py-12 text-gray-400">
+            <div className="text-center py-12 text-warm-muted">
               <p className="text-4xl mb-3">📁</p>
               <p className="text-sm">ยังไม่มี portfolio — สร้างอันแรกได้เลย!</p>
             </div>
           )}
 
           {showNew ? (
-            <div className="border border-dashed border-indigo-300 rounded-xl p-4 space-y-3">
-              <p className="text-sm font-medium text-gray-700">ชื่อ Portfolio ใหม่</p>
+            <div className="bg-parchment border-2 border-dashed border-gold/50 rounded-xl p-4 space-y-3">
+              <p className="text-sm font-semibold text-navy">ชื่อ Portfolio ใหม่</p>
               <input
                 autoFocus
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-warm-border bg-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold"
                 placeholder="เช่น ผศ.ดร.สมชาย — Tech Portfolio 2569"
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
@@ -139,17 +139,17 @@ export default function ProjectListPage({ onOpen }) {
                 <button
                   onClick={createProject}
                   disabled={creating || !newName.trim()}
-                  className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  className="px-4 py-2 bg-navy hover:bg-navy-hover text-white text-sm rounded-lg disabled:opacity-50 font-medium transition-colors"
                 >
                   {creating ? 'กำลังสร้าง...' : 'สร้าง'}
                 </button>
-                <button onClick={() => setShowNew(false)} className="px-4 py-2 text-gray-500 text-sm">ยกเลิก</button>
+                <button onClick={() => setShowNew(false)} className="px-4 py-2 text-warm-muted text-sm hover:text-navy">ยกเลิก</button>
               </div>
             </div>
           ) : (
             <button
               onClick={() => setShowNew(true)}
-              className="w-full py-3 border-2 border-dashed border-gray-200 text-gray-500 rounded-xl text-sm hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+              className="w-full py-3 border-2 border-dashed border-warm-border text-warm-muted rounded-xl text-sm hover:border-gold hover:text-gold transition-colors font-medium"
             >
               + สร้าง Portfolio ใหม่
             </button>

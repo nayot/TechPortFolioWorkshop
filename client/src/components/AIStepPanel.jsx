@@ -66,18 +66,18 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
 
   return (
     <div className="space-y-4">
-      <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="border border-warm-border rounded-lg overflow-hidden">
         <button
           onClick={() => setPromptVisible(v => !v)}
-          className="w-full flex items-center justify-between px-4 py-2.5 bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-2.5 bg-gold-pale text-sm font-medium text-navy hover:bg-gold-light transition-colors"
         >
           <span>📝 ดู/แก้ไข Prompt (RTCF)</span>
-          <span className="text-gray-400">{promptVisible ? '▲' : '▼'}</span>
+          <span className="text-warm-muted">{promptVisible ? '▲' : '▼'}</span>
         </button>
         {promptVisible && (
-          <div className="p-3">
+          <div className="p-3 bg-parchment">
             <textarea
-              className="w-full text-xs font-mono border border-gray-200 rounded p-2 resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="w-full text-xs font-mono border border-warm-border rounded p-2 resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
               rows={10}
               value={prompt || stepConfig.buildPrompt(buildContext())}
               onChange={e => setPrompt(e.target.value)}
@@ -91,7 +91,7 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
         <button
           onClick={generate}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-hover text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm transition-colors border-2 border-navy"
         >
           {loading ? (
             <>
@@ -104,7 +104,7 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
           ) : rawOutput ? '🔄 สร้างใหม่' : '✨ สร้างด้วย AI'}
         </button>
         {loading && (
-          <span className="text-sm font-mono text-indigo-500 tabular-nums">
+          <span className="text-sm font-mono text-gold tabular-nums font-semibold">
             {String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}
           </span>
         )}

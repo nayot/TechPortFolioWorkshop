@@ -81,12 +81,13 @@ export default function WizardPage({ projectMeta, initialData, onAssemble, onBac
         <div className="max-w-2xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">
-                {currentStepConfig.number}. {currentStepConfig.titleTh}
-              </h2>
-              <p className="text-xs text-gray-500">{currentStepConfig.description}</p>
+              <div className="flex items-center gap-2">
+                <span className="w-7 h-7 rounded-full bg-gold text-navy text-sm font-bold flex items-center justify-center shrink-0">{currentStepConfig.number}</span>
+                <h2 className="text-lg font-bold text-navy">{currentStepConfig.titleTh}</h2>
+              </div>
+              <p className="text-xs text-warm-muted mt-1 ml-9">{currentStepConfig.description}</p>
             </div>
-            {saving && <span className="text-xs text-gray-400">💾 กำลังบันทึก...</span>}
+            {saving && <span className="text-xs text-warm-muted">💾 กำลังบันทึก...</span>}
           </div>
 
           <StepComponent
@@ -94,13 +95,13 @@ export default function WizardPage({ projectMeta, initialData, onAssemble, onBac
             onSave={(data) => handleStepSave(currentStep, data)}
           />
 
-          <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
-            <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">← รายการ Portfolio</button>
+          <div className="mt-6 pt-4 border-t border-warm-border flex justify-between items-center">
+            <button onClick={onBack} className="text-sm text-warm-muted hover:text-navy transition-colors">← รายการ Portfolio</button>
             <button
               onClick={() => onAssemble(project)}
               disabled={completedSteps.length < STEPS.length}
               title={completedSteps.length < STEPS.length ? `ยังเหลืออีก ${STEPS.length - completedSteps.length} ขั้นตอน` : ''}
-              className="px-4 py-2 text-sm rounded-lg transition-colors disabled:cursor-not-allowed bg-gray-200 text-gray-400 enabled:bg-indigo-600 enabled:text-white enabled:hover:bg-indigo-700"
+              className="px-4 py-2 text-sm rounded-lg font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-warm-border disabled:text-warm-muted enabled:bg-navy enabled:text-white enabled:hover:bg-navy-hover enabled:border-2 enabled:border-navy"
             >
               ดูภาพรวม Portfolio →
             </button>
