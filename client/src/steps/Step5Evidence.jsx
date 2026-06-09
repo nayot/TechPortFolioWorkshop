@@ -40,10 +40,13 @@ export default function Step5Evidence({ project, onSave }) {
       onParsed={(p) => { if (p?.length) setItems(p); }}
     >
       {({ parsed, onSave: save }) => {
-        const allItems = parsed?.length ? parsed : items;
+        const parsedItems = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
+        const brief = !Array.isArray(parsed) ? parsed?.brief : '';
+        const allItems = parsedItems.length ? parsedItems : items;
 
         return (
           <div className="space-y-3">
+            {brief && <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{brief}</p>}
             {allItems.map((e, i) => (
               <div
                 key={i}

@@ -52,6 +52,9 @@ export default function Step1Profile({ project, onSave }) {
   function handleAIOutput({ rawOutput, parsed, onSave: save }) {
     return (
       <div className="space-y-4">
+        {parsed?.brief && (
+          <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{parsed.brief}</p>
+        )}
         {parsed && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -152,7 +155,7 @@ export default function Step1Profile({ project, onSave }) {
         savedData={saved}
         onParsed={(p) => {
           if (p?.statement && !statement) setStatement(p.statement);
-          if (p) setFields(prev => ({ ...prev, ...p }));
+          if (p) setFields(prev => ({ ...prev, ...p, brief: undefined }));
         }}
       >
         {(props) => handleAIOutput(props)}

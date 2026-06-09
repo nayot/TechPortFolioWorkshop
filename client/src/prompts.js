@@ -5,25 +5,26 @@ export const STEPS = [
     title: 'Profile',
     titleTh: 'โปรไฟล์',
     outputType: 'json-profile',
-    description: 'Who the researcher is + a rich positioning statement',
-    buildPrompt: ({ cvText }) => `[ROLE] You are a research-portfolio editor helping a university researcher build a Tech Portfolio for the Maejo University Deep Mentorship Program (FY2569).
+    description: 'ตัวตนและคำแถลงการวางตำแหน่งของนักวิจัย',
+    buildPrompt: ({ cvText }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ (FY2569)
 
-[TASK] From the CV below, (a) extract structured profile fields and (b) write a rich 4–6 sentence profile/positioning statement.
+[TASK] จากประวัติย่อ (CV) ด้านล่าง ให้ (ก) ดึงข้อมูลโปรไฟล์ที่มีโครงสร้าง และ (ข) เขียนคำแถลงโปรไฟล์/การวางตำแหน่ง 4–6 ประโยค
 
-[CONTEXT] The portfolio is a shared language between mentor, mentee, and funder. The Profile component should convey identity, research domain, distinctive positioning, and trajectory. The researcher is a faculty member or researcher at Maejo University who will mentor entrepreneurial students in agriculture, food, and health domains.
-CV TEXT:
+[CONTEXT] Portfolio นี้เป็นภาษากลางระหว่างพี่เลี้ยง ลูกศิษย์ และผู้ให้ทุน โปรไฟล์ควรสื่อถึงเอกลักษณ์ สาขาวิจัย การวางตำแหน่งที่โดดเด่น และทิศทางในอนาคต นักวิจัยเป็นอาจารย์หรือนักวิจัยของมหาวิทยาลัยแม่โจ้ที่จะเป็นพี่เลี้ยงให้นักศึกษาด้านเกษตร อาหาร และสุขภาพ
+CV:
 """
-${cvText || '(No CV provided — please fill in the fields manually)'}
+${cvText || '(ไม่มี CV — กรุณากรอกข้อมูลในแบบฟอร์มด้วยตนเอง)'}
 """
 
-[FORMAT] Return JSON only — no prose, no code fences:
+[FORMAT] ตอบเป็น JSON เท่านั้น — ไม่มีข้อความอธิบาย ไม่มี code fence — และ ตอบเป็นภาษาไทยทั้งหมด ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน/ฉัน":
 {
-  "name": "full name and title",
-  "position": "position and department",
-  "institution": "university/institute",
-  "domain": "primary research domain",
-  "expertise": ["keyword1", "keyword2", "keyword3"],
-  "statement": "4–6 sentence profile/positioning statement"
+  "name": "ชื่อ-สกุล และตำแหน่งทางวิชาการ",
+  "position": "ตำแหน่งและภาควิชา",
+  "institution": "มหาวิทยาลัย/หน่วยงาน",
+  "domain": "สาขาวิจัยหลัก",
+  "expertise": ["คีย์เวิร์ด1", "คีย์เวิร์ด2", "คีย์เวิร์ด3"],
+  "brief": "สรุปโปรไฟล์ 2–3 ประโยค เป็นภาษาไทย",
+  "statement": "คำแถลงโปรไฟล์/การวางตำแหน่ง 4–6 ประโยค เป็นภาษาไทย ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน'"
 }`,
   },
   {
@@ -32,20 +33,23 @@ ${cvText || '(No CV provided — please fill in the fields manually)'}
     title: 'Skills',
     titleTh: 'ทักษะ',
     outputType: 'selectable-list',
-    description: 'Technical/domain capabilities aligned to a theme',
-    buildPrompt: ({ cvText, profile }) => `[ROLE] You are a research-portfolio editor for the Maejo University Deep Mentorship Program.
+    description: 'ความสามารถทางเทคนิคและสาขาวิชาที่สอดคล้องกับธีมงาน',
+    buildPrompt: ({ cvText, profile }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] Suggest a list of 10–15 specific technical and domain skills for this researcher, themed to their research area and relevant to mentoring entrepreneurial students in agriculture, food, and health.
+[TASK] เสนอรายการทักษะเฉพาะด้านเทคนิคและสาขาวิชา 10–15 รายการ สำหรับนักวิจัยคนนี้ โดยสอดคล้องกับสาขาวิจัยและความเกี่ยวข้องกับการเป็นพี่เลี้ยงนักศึกษาด้านเกษตร อาหาร และสุขภาพ
 
-[CONTEXT] Researcher profile: ${profile?.statement || '(see CV)'}
-Research domain: ${profile?.domain || ''}
-CV TEXT:
+[CONTEXT] โปรไฟล์นักวิจัย: ${profile?.statement || '(ดูจาก CV)'}
+สาขาวิจัย: ${profile?.domain || ''}
+CV:
 """
-${cvText || '(No CV provided)'}
+${cvText || '(ไม่มี CV)'}
 """
 
-[FORMAT] Return JSON only — an array of skill strings, no prose, no code fences:
-["Skill 1", "Skill 2", "Skill 3", ...]`,
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย**:
+{
+  "brief": "สรุปภาพรวมทักษะของนักวิจัย 2–3 ประโยค เป็นภาษาไทย ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน'",
+  "items": ["ทักษะที่ 1", "ทักษะที่ 2", ...]
+}`,
   },
   {
     id: 'projects',
@@ -53,28 +57,32 @@ ${cvText || '(No CV provided)'}
     title: 'Projects',
     titleTh: 'โครงการ',
     outputType: 'selectable-cards',
-    description: 'Key research/innovation projects',
-    buildPrompt: ({ cvText, profile }) => `[ROLE] You are a research-portfolio editor for the Maejo University Deep Mentorship Program.
+    description: 'โครงการวิจัย/นวัตกรรมสำคัญ พร้อมแหล่งอ้างอิง',
+    buildPrompt: ({ cvText, profile }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] Extract key research/innovation projects from this CV, then rank them by impact and relevance to mentoring agri-food-health entrepreneurs.
+[TASK] ดึงโครงการวิจัย/นวัตกรรมสำคัญจาก CV นี้ แล้วจัดอันดับตามผลกระทบและความเกี่ยวข้องกับการเป็นพี่เลี้ยงด้านเกษตร อาหาร และสุขภาพ นอกจากนี้ ให้ค้นหาและอ้างอิงผลงานที่เกี่ยวข้องจาก Google Scholar หรือฐานข้อมูลวิชาการที่น่าเชื่อถือ (ใช้ข้อมูลจาก CV เพื่อระบุผลงานจริง)
 
-[CONTEXT] Researcher: ${profile?.name || ''}
-Domain: ${profile?.domain || ''}
-CV TEXT:
+[CONTEXT] นักวิจัย: ${profile?.name || ''}
+สาขา: ${profile?.domain || ''}
+CV:
 """
-${cvText || '(No CV provided)'}
+${cvText || '(ไม่มี CV)'}
 """
 
-[FORMAT] Return JSON only — an array of project objects ranked from most to least relevant, no prose, no code fences:
-[
-  {
-    "title": "Project title",
-    "period": "year or year range",
-    "description": "2–3 sentence description",
-    "impact": "key outcome or impact",
-    "relevance": "why relevant for mentoring entrepreneurs"
-  }
-]`,
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย** (ยกเว้นชื่อผลงาน/ชื่อวารสาร):
+{
+  "brief": "สรุปภาพรวมโครงการของนักวิจัย 2–3 ประโยค เป็นภาษาไทย ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน'",
+  "items": [
+    {
+      "title": "ชื่อโครงการ",
+      "period": "ปี หรือช่วงเวลา",
+      "description": "คำอธิบาย 2–3 ประโยค เป็นภาษาไทย",
+      "impact": "ผลลัพธ์หรือผลกระทบหลัก เป็นภาษาไทย",
+      "relevance": "เหตุผลที่เกี่ยวข้องกับการเป็นพี่เลี้ยง เป็นภาษาไทย",
+      "references": ["Author, A. (year). Title of paper. Journal Name, Vol(Issue), pages. DOI/URL"]
+    }
+  ]
+}`,
   },
   {
     id: 'process',
@@ -82,21 +90,24 @@ ${cvText || '(No CV provided)'}
     title: 'Process',
     titleTh: 'กระบวนการ',
     outputType: 'selectable-list',
-    description: 'How the researcher works',
-    buildPrompt: ({ cvText, profile, skills }) => `[ROLE] You are a research-portfolio editor for the Maejo University Deep Mentorship Program.
+    description: 'วิธีการทำงานและกระบวนการวิจัยของนักวิจัย',
+    buildPrompt: ({ cvText, profile, skills }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] Suggest a list of 8–12 research/innovation process descriptors — how this researcher works, their methodology, and their approach to translating research to real-world impact.
+[TASK] เสนอรายการคำอธิบายกระบวนการวิจัย/นวัตกรรม 8–12 รายการ — วิธีการทำงานของนักวิจัย วิธีการวิจัย และแนวทางการแปลงผลวิจัยสู่การใช้งานจริง
 
-[CONTEXT] Researcher: ${profile?.name || ''}
-Domain: ${profile?.domain || ''}
-Selected skills: ${skills?.join(', ') || ''}
-CV TEXT:
+[CONTEXT] นักวิจัย: ${profile?.name || ''}
+สาขา: ${profile?.domain || ''}
+ทักษะที่เลือก: ${skills?.join(', ') || ''}
+CV:
 """
-${cvText || '(No CV provided)'}
+${cvText || '(ไม่มี CV)'}
 """
 
-[FORMAT] Return JSON only — an array of process descriptor strings, no prose, no code fences:
-["Process 1", "Process 2", ...]`,
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย**:
+{
+  "brief": "สรุปกระบวนการทำงานและปรัชญาการวิจัยของนักวิจัย 2–3 ประโยค เป็นภาษาไทย ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน'",
+  "items": ["กระบวนการที่ 1", "กระบวนการที่ 2", ...]
+}`,
   },
   {
     id: 'evidence',
@@ -104,28 +115,31 @@ ${cvText || '(No CV provided)'}
     title: 'Evidence',
     titleTh: 'หลักฐาน',
     outputType: 'selectable-cards',
-    description: 'Proof points: publications, patents, grants, prototypes',
-    buildPrompt: ({ cvText, profile }) => `[ROLE] You are a research-portfolio editor for the Maejo University Deep Mentorship Program.
+    description: 'หลักฐานยืนยัน: ผลงานวิชาการ สิทธิบัตร ทุนวิจัย ต้นแบบ',
+    buildPrompt: ({ cvText, profile }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] Extract and rank evidence items (publications, patents, grants, awards, prototypes, demos) from this CV by relevance to the researcher's positioning as a mentor for agri-food-health entrepreneurs.
+[TASK] ดึงและจัดอันดับหลักฐาน (ผลงานวิชาการ สิทธิบัตร ทุนวิจัย รางวัล ต้นแบบ การสาธิต) จาก CV นี้ ตามความเกี่ยวข้องกับการวางตำแหน่งนักวิจัยในฐานะพี่เลี้ยงสำหรับผู้ประกอบการด้านเกษตร อาหาร และสุขภาพ
 
-[CONTEXT] Researcher: ${profile?.name || ''}
-Domain: ${profile?.domain || ''}
-CV TEXT:
+[CONTEXT] นักวิจัย: ${profile?.name || ''}
+สาขา: ${profile?.domain || ''}
+CV:
 """
-${cvText || '(No CV provided)'}
+${cvText || '(ไม่มี CV)'}
 """
 
-[FORMAT] Return JSON only — an array of evidence objects ranked from most to least relevant, no prose, no code fences:
-[
-  {
-    "type": "publication | patent | grant | award | prototype | other",
-    "title": "Title or name",
-    "year": "year",
-    "description": "1–2 sentence description",
-    "significance": "why this matters as evidence"
-  }
-]`,
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย** (ยกเว้นชื่อผลงานวิชาการ):
+{
+  "brief": "สรุปหลักฐานและความสำเร็จของนักวิจัย 2–3 ประโยค เป็นภาษาไทย ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน'",
+  "items": [
+    {
+      "type": "publication | patent | grant | award | prototype | other",
+      "title": "ชื่อผลงานหรือรางวัล",
+      "year": "ปี",
+      "description": "คำอธิบาย 1–2 ประโยค เป็นภาษาไทย",
+      "significance": "เหตุผลที่สำคัญ เป็นภาษาไทย"
+    }
+  ]
+}`,
   },
   {
     id: 'impact',
@@ -133,21 +147,24 @@ ${cvText || '(No CV provided)'}
     title: 'Impact',
     titleTh: 'ผลกระทบ',
     outputType: 'selectable-list',
-    description: 'Outcomes and value created',
-    buildPrompt: ({ cvText, profile, projects }) => `[ROLE] You are a research-portfolio editor for the Maejo University Deep Mentorship Program.
+    description: 'ผลลัพธ์และคุณค่าที่สร้างขึ้น',
+    buildPrompt: ({ cvText, profile, projects }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] Suggest 8–12 specific impact statements for this researcher — outcomes and value created through their research, for communities, industries, or policy.
+[TASK] เสนอคำแถลงผลกระทบ 8–12 รายการ สำหรับนักวิจัยคนนี้ — ผลลัพธ์และคุณค่าที่เกิดขึ้นจากงานวิจัย ต่อชุมชน อุตสาหกรรม หรือนโยบาย
 
-[CONTEXT] Researcher: ${profile?.name || ''}
-Domain: ${profile?.domain || ''}
-Selected projects: ${projects?.map(p => p.title).join(', ') || ''}
-CV TEXT:
+[CONTEXT] นักวิจัย: ${profile?.name || ''}
+สาขา: ${profile?.domain || ''}
+โครงการที่เลือก: ${projects?.map(p => p.title).join(', ') || ''}
+CV:
 """
-${cvText || '(No CV provided)'}
+${cvText || '(ไม่มี CV)'}
 """
 
-[FORMAT] Return JSON only — an array of impact statement strings (each 1–2 sentences), no prose, no code fences:
-["Impact statement 1", "Impact statement 2", ...]`,
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย** ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน':
+{
+  "brief": "สรุปผลกระทบโดยรวมของงานวิจัย 2–3 ประโยค เป็นภาษาไทย",
+  "items": ["คำแถลงผลกระทบที่ 1 (1–2 ประโยค)", "คำแถลงผลกระทบที่ 2", ...]
+}`,
   },
   {
     id: 'reflection',
@@ -155,19 +172,54 @@ ${cvText || '(No CV provided)'}
     title: 'Reflection',
     titleTh: 'การสะท้อนคิด',
     outputType: 'text',
-    description: 'Self-assessment + mentoring readiness',
-    buildPrompt: ({ profile, skills, projects, impact }) => `[ROLE] You are a research-portfolio editor and reflective practice coach for the Maejo University Deep Mentorship Program.
+    description: 'การประเมินตนเองและความพร้อมในการเป็นพี่เลี้ยง',
+    buildPrompt: ({ profile, skills, projects, impact }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio และโค้ชการสะท้อนคิด สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] Help this researcher write a thoughtful reflection statement (3–5 paragraphs) covering: (1) their unique contribution as a mentor, (2) how their research journey prepares them to guide entrepreneurial students, (3) their vision for the mentor-mentee relationship, and (4) their readiness and commitment to deep mentorship.
+[TASK] ช่วยนักวิจัยเขียนบทสะท้อนคิดที่ลึกซึ้ง (3–5 ย่อหน้า) ครอบคลุม: (1) การมีส่วนร่วมอันเป็นเอกลักษณ์ในฐานะพี่เลี้ยง (2) เส้นทางการวิจัยของนักวิจัยเตรียมนักวิจัยสู่การแนะนำนักศึกษาผู้ประกอบการอย่างไร (3) วิสัยทัศน์สำหรับความสัมพันธ์พี่เลี้ยง-ลูกศิษย์ และ (4) ความพร้อมและความมุ่งมั่นต่อการเป็นพี่เลี้ยงเชิงลึก
 
-[CONTEXT] Researcher: ${profile?.name || ''}
-Domain: ${profile?.domain || ''}
-Key skills: ${skills?.slice(0, 5).join(', ') || ''}
-Key projects: ${projects?.slice(0, 3).map(p => p.title).join(', ') || ''}
-Selected impacts: ${impact?.slice(0, 3).join('; ') || ''}
-Portfolio statement: ${profile?.statement || ''}
+[CONTEXT] นักวิจัย: ${profile?.name || ''}
+สาขา: ${profile?.domain || ''}
+ทักษะสำคัญ: ${skills?.slice(0, 5).join(', ') || ''}
+โครงการสำคัญ: ${projects?.slice(0, 3).map(p => p.title).join(', ') || ''}
+ผลกระทบที่เลือก: ${impact?.slice(0, 3).join('; ') || ''}
+คำแถลงโปรไฟล์: ${profile?.statement || ''}
 
-[FORMAT] Return a well-structured reflection in plain prose (no JSON, no bullet points). Write in first person, authentic voice, suitable for a mentorship program portfolio.`,
+[FORMAT] เขียนเป็นภาษาไทย เป็นร้อยแก้ว (ไม่ใช่ JSON ไม่ใช่ bullet point) ขึ้นต้นด้วยย่อหน้าสรุป 2–3 ประโยค แล้วตามด้วยการสะท้อนคิดฉบับสมบูรณ์ ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน/ฉัน" ตลอด`,
+  },
+  {
+    id: 'commercialization',
+    number: 8,
+    title: 'Commercialization Gaps',
+    titleTh: 'ช่องว่างเชิงพาณิชย์',
+    outputType: 'selectable-cards',
+    description: 'ระบุช่องว่างระหว่างงานวิจัยกับการนำไปใช้เชิงพาณิชย์',
+    buildPrompt: ({ cvText, profile, projects, evidence, impact }) => `[ROLE] คุณคือที่ปรึกษาเทคโนโลยีและนวัตกรรมสำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ ผู้เชี่ยวชาญด้านการแปลงงานวิจัยสู่เชิงพาณิชย์ (Technology Transfer & Commercialization)
+
+[TASK] วิเคราะห์ Portfolio ของนักวิจัยคนนี้และระบุ "ช่องว่างเชิงพาณิชย์" (Commercialization Gaps) — จุดที่งานวิจัยยังขาดหรือต้องการการพัฒนาเพื่อเข้าสู่ตลาดจริง เสนอ 5–8 ช่องว่างพร้อมคำแนะนำ
+
+[CONTEXT] นักวิจัย: ${profile?.name || ''}
+สาขา: ${profile?.domain || ''}
+โครงการสำคัญ: ${projects?.map(p => p.title).join(', ') || ''}
+หลักฐาน: ${evidence?.map(e => e.title).join(', ') || ''}
+ผลกระทบ: ${impact?.slice(0, 3).join('; ') || ''}
+CV:
+"""
+${cvText || '(ไม่มี CV)'}
+"""
+
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย**:
+{
+  "brief": "สรุปศักยภาพเชิงพาณิชย์และช่องว่างหลักของงานวิจัย 2–3 ประโยค เป็นภาษาไทย ใช้ 'นักวิจัย' แทน 'ผม/ดิฉัน'",
+  "items": [
+    {
+      "gap": "ชื่อช่องว่าง (สั้น กระชับ)",
+      "description": "คำอธิบายช่องว่าง 2–3 ประโยค เป็นภาษาไทย",
+      "opportunity": "โอกาสเชิงพาณิชย์ที่เกิดขึ้น เป็นภาษาไทย",
+      "barrier": "อุปสรรคหรือสิ่งที่ขาดหายในปัจจุบัน เป็นภาษาไทย",
+      "recommendation": "คำแนะนำเชิงปฏิบัติ เป็นภาษาไทย"
+    }
+  ]
+}`,
   },
 ];
 

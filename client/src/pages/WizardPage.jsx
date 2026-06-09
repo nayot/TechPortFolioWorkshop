@@ -9,6 +9,7 @@ import Step4Process from '../steps/Step4Process.jsx';
 import Step5Evidence from '../steps/Step5Evidence.jsx';
 import Step6Impact from '../steps/Step6Impact.jsx';
 import Step7Reflection from '../steps/Step7Reflection.jsx';
+import Step8CommercializationGaps from '../steps/Step8CommercializationGaps.jsx';
 
 const STEP_COMPONENTS = {
   profile: Step1Profile,
@@ -18,6 +19,7 @@ const STEP_COMPONENTS = {
   evidence: Step5Evidence,
   impact: Step6Impact,
   reflection: Step7Reflection,
+  commercialization: Step8CommercializationGaps,
 };
 
 export default function WizardPage({ projectMeta, initialData, onAssemble, onBack }) {
@@ -27,7 +29,10 @@ export default function WizardPage({ projectMeta, initialData, onAssemble, onBac
   const debounceRef = useRef(null);
 
   const completedSteps = STEPS
-    .filter(s => project.steps?.[s.id]?.finalText || project.steps?.[s.id]?.selections?.length > 0)
+    .filter(s => {
+      const data = project.steps?.[s.id];
+      return data?.finalText || (data?.selections?.length > 0) || (Array.isArray(data?.selections) && data.selections.length > 0);
+    })
     .map(s => s.id);
 
   const autosave = useCallback((data) => {

@@ -38,10 +38,13 @@ export default function Step3Projects({ project, onSave }) {
       onParsed={(p) => { if (p?.length) setProjects(p); }}
     >
       {({ parsed, onSave: save }) => {
-        const items = parsed?.length ? parsed : projects;
+        const parsedItems = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
+        const brief = !Array.isArray(parsed) ? parsed?.brief : '';
+        const items = parsedItems.length ? parsedItems : projects;
 
         return (
           <div className="space-y-3">
+            {brief && <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{brief}</p>}
             {items.map((p, i) => (
               <div
                 key={i}
@@ -63,6 +66,13 @@ export default function Step3Projects({ project, onSave }) {
                     </div>
                     {p.description && <p className="text-xs text-gray-600 mt-1 ml-6">{p.description}</p>}
                     {p.impact && <p className="text-xs text-indigo-600 mt-0.5 ml-6">💡 {p.impact}</p>}
+                    {p.references?.length > 0 && (
+                      <div className="ml-6 mt-1">
+                        {p.references.map((ref, ri) => (
+                          <p key={ri} className="text-xs text-gray-400 italic">📚 {ref}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

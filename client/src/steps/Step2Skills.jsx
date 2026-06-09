@@ -26,7 +26,7 @@ export default function Step2Skills({ project, onSave }) {
     try {
       const content = await aiComplete([{
         role: 'user',
-        content: `Write a 3–4 sentence skills/competencies statement for a university researcher's Tech Portfolio. The statement should integrate these selected skills into a coherent narrative about their capabilities:\n\nSkills: ${skillList.join(', ')}\nResearcher domain: ${profile.domain || ''}\n\nReturn only the statement, no explanation.`
+        content: `เขียนคำแถลงทักษะ/สมรรถนะ 3–4 ประโยค สำหรับ Tech Portfolio ของนักวิจัยมหาวิทยาลัย ใช้ภาษาไทยทั้งหมด ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน" คำแถลงควรรวมทักษะที่เลือกเข้าด้วยกันเป็นเรื่องราวที่สอดคล้องกัน:\n\nทักษะ: ${skillList.join(', ')}\nสาขาวิจัย: ${profile.domain || ''}\n\nตอบเฉพาะคำแถลงเท่านั้น ไม่มีคำอธิบายอื่น`
       }]);
       setStatement(content.trim());
     } catch (err) {
@@ -45,10 +45,12 @@ export default function Step2Skills({ project, onSave }) {
       savedData={saved}
     >
       {({ parsed, onSave: save }) => {
-        const skills = Array.isArray(parsed) ? parsed : [];
+        const skills = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
+        const brief = !Array.isArray(parsed) ? parsed?.brief : '';
         const selectedArr = [...selected];
         return (
           <div className="space-y-4">
+            {brief && <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{brief}</p>}
             {skills.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">เลือกทักษะที่ตรงกับคุณ</p>

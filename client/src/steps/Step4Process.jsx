@@ -27,10 +27,12 @@ export default function Step4Process({ project, onSave }) {
       savedData={saved}
     >
       {({ parsed, onSave: save }) => {
-        const items = Array.isArray(parsed) ? parsed : [];
+        const items = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
+        const brief = !Array.isArray(parsed) ? parsed?.brief : '';
         const selectedArr = [...selected];
         return (
           <div className="space-y-4">
+            {brief && <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{brief}</p>}
             {items.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">เลือกกระบวนการที่ตรงกับวิธีทำงานของคุณ</p>

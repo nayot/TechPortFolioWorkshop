@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { api } from '../api.js';
-import { STEPS } from '../prompts.js';
 
 function Section({ title, children }) {
   return (
@@ -21,40 +20,57 @@ function buildHtml(project) {
   const evidence = steps.evidence?.selections || [];
   const impact = steps.impact?.selections || [];
   const reflection = steps.reflection?.finalText || '';
+  const gaps = steps.commercialization?.selections || [];
 
   return `<!DOCTYPE html>
 <html lang="th"><head><meta charset="UTF-8"><title>Tech Portfolio — ${profile.name || ''}</title>
 <style>body{font-family:Sarabun,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#333}
 h1{color:#1a1a2e}h2{color:#4338ca;border-bottom:2px solid #e0e7ff;padding-bottom:8px}
+.brief{background:#eef2ff;border-left:4px solid #818cf8;padding:10px 14px;border-radius:4px;margin-bottom:12px;font-style:italic}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .chip{background:#e0e7ff;color:#3730a3;padding:4px 12px;border-radius:20px;font-size:13px}
 .card{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px}
-.label{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em}</style>
+.gap-card{border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:12px;background:#fffbeb}
+.gap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
+.gap-col{padding:8px;border-radius:6px;font-size:12px}
+.opp{background:#dcfce7}.bar{background:#fee2e2}.rec{background:#dbeafe}
+.label{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em}
+.ref{font-size:11px;color:#9ca3af;font-style:italic;margin-top:4px}</style>
 </head><body>
 <h1>${profile.name || 'Tech Portfolio'}</h1>
 <p><strong>${profile.position || ''}</strong>${profile.institution ? ' · ' + profile.institution : ''}</p>
 
-<h2>1. Profile</h2>
+<h2>1. โปรไฟล์</h2>
+${steps.profile?.parsed?.brief ? `<p class="brief">${steps.profile.parsed.brief}</p>` : ''}
 <p>${steps.profile?.finalText || profile.statement || ''}</p>
 
-<h2>2. Skills</h2>
+<h2>2. ทักษะ</h2>
+${steps.skills?.parsed?.brief ? `<p class="brief">${steps.skills.parsed.brief}</p>` : ''}
 <div class="chips">${skills.map(s => `<span class="chip">${s}</span>`).join('')}</div>
 ${skillsStatement ? `<p style="margin-top:12px">${skillsStatement}</p>` : ''}
 
-<h2>3. Projects</h2>
-${projects.map(p => `<div class="card"><strong>${p.title}</strong>${p.period ? ` (${p.period})` : ''}<p>${p.description || ''}</p>${p.impact ? `<p><em>💡 ${p.impact}</em></p>` : ''}</div>`).join('')}
+<h2>3. โครงการ</h2>
+${steps.projects?.parsed?.brief ? `<p class="brief">${steps.projects.parsed.brief}</p>` : ''}
+${projects.map(p => `<div class="card"><strong>${p.title}</strong>${p.period ? ` (${p.period})` : ''}<p>${p.description || ''}</p>${p.impact ? `<p><em>💡 ${p.impact}</em></p>` : ''}${p.references?.length ? `<div class="ref">${p.references.map(r => `📚 ${r}`).join('<br/>')}</div>` : ''}</div>`).join('')}
 
-<h2>4. Process</h2>
+<h2>4. กระบวนการ</h2>
+${steps.process?.parsed?.brief ? `<p class="brief">${steps.process.parsed.brief}</p>` : ''}
 <div class="chips">${process.map(s => `<span class="chip">${s}</span>`).join('')}</div>
 
-<h2>5. Evidence</h2>
+<h2>5. หลักฐาน</h2>
+${steps.evidence?.parsed?.brief ? `<p class="brief">${steps.evidence.parsed.brief}</p>` : ''}
 ${evidence.map(e => `<div class="card"><span class="label">${e.type}</span> ${e.year ? `(${e.year})` : ''}<p><strong>${e.title}</strong></p><p>${e.description || ''}</p></div>`).join('')}
 
-<h2>6. Impact</h2>
+<h2>6. ผลกระทบ</h2>
+${steps.impact?.parsed?.brief ? `<p class="brief">${steps.impact.parsed.brief}</p>` : ''}
 <ul>${impact.map(i => `<li>${i}</li>`).join('')}</ul>
 
-<h2>7. Reflection</h2>
+<h2>7. การสะท้อนคิด</h2>
 <p style="white-space:pre-wrap">${reflection}</p>
+
+<h2>8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)</h2>
+${steps.commercialization?.parsed?.brief ? `<p class="brief">${steps.commercialization.parsed.brief}</p>` : ''}
+${gaps.map(g => `<div class="gap-card"><strong>🔍 ${g.gap}</strong><p>${g.description || ''}</p><div class="gap-grid"><div class="gap-col opp"><strong>โอกาส:</strong> ${g.opportunity || ''}</div><div class="gap-col bar"><strong>อุปสรรค:</strong> ${g.barrier || ''}</div><div class="gap-col rec"><strong>คำแนะนำ:</strong> ${g.recommendation || ''}</div></div></div>`).join('')}
 </body></html>`;
 }
 
@@ -66,33 +82,37 @@ function buildMarkdownBrief(project) {
   const process = steps.process?.selections || [];
   const impact = steps.impact?.selections || [];
   const reflection = steps.reflection?.finalText || '';
+  const gaps = steps.commercialization?.selections || [];
 
   return `# Tech Portfolio Infographic Brief
 
-**Researcher:** ${profile.name || 'N/A'}
-**Domain:** ${profile.domain || 'N/A'}
-**Institution:** ${profile.institution || 'N/A'}
+**นักวิจัย:** ${profile.name || 'N/A'}
+**สาขา:** ${profile.domain || 'N/A'}
+**สังกัด:** ${profile.institution || 'N/A'}
 
-## Profile Statement
-${steps.profile?.finalText || profile.statement || 'N/A'}
+## สรุปโปรไฟล์
+${steps.profile?.parsed?.brief || steps.profile?.finalText || profile.statement || 'N/A'}
 
-## Skills (${skills.length})
+## ทักษะ (${skills.length} รายการ)
 ${skills.map(s => `- ${s}`).join('\n')}
 
-## Key Projects (${projects.length})
-${projects.map(p => `- **${p.title}** (${p.period || ''}): ${p.description || ''}`).join('\n')}
+## โครงการสำคัญ (${projects.length} โครงการ)
+${projects.map(p => `- **${p.title}** (${p.period || ''}): ${p.description || ''}${p.references?.length ? `\n  - อ้างอิง: ${p.references[0]}` : ''}`).join('\n')}
 
-## Working Process
+## กระบวนการทำงาน
 ${process.map(p => `- ${p}`).join('\n')}
 
-## Impact
+## ผลกระทบ
 ${impact.map(i => `- ${i}`).join('\n')}
 
-## Reflection
+## การสะท้อนคิด
 ${reflection}
 
+## ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)
+${gaps.map(g => `- **${g.gap}**: ${g.description || ''}\n  - โอกาส: ${g.opportunity || ''}\n  - คำแนะนำ: ${g.recommendation || ''}`).join('\n')}
+
 ---
-*Paste this brief into ChatGPT or Gemini with the instruction: "Create a professional infographic for this researcher's Tech Portfolio. Use a clean, academic style with the Maejo University Deep Mentorship Program branding."*`;
+*วางข้อความนี้ใน ChatGPT หรือ Gemini พร้อมคำสั่ง: "สร้าง Infographic มืออาชีพสำหรับ Tech Portfolio ของนักวิจัยคนนี้ ใช้สไตล์วิชาการที่สะอาดตา พร้อมธีมสีของโครงการ Deep Mentorship Program มหาวิทยาลัยแม่โจ้"*`;
 }
 
 export default function AssemblyPage({ project, projectMeta, onEditStep, onBack }) {
@@ -104,6 +124,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   const evidence = steps.evidence?.selections || [];
   const impact = steps.impact?.selections || [];
   const reflection = steps.reflection?.finalText || '';
+  const gaps = steps.commercialization?.selections || [];
 
   const [exporting, setExporting] = useState(false);
   const [exportLink, setExportLink] = useState('');
@@ -181,7 +202,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           )}
 
           {/* Profile */}
-          <Section title="1. Profile">
+          <Section title="1. โปรไฟล์">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="font-semibold text-gray-900">{profile.name || '—'}</p>
@@ -193,16 +214,22 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                     ))}
                   </div>
                 )}
-                <p className="text-sm text-gray-700 mt-3">{steps.profile?.finalText || profile.statement || '—'}</p>
+                {steps.profile?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic mt-2 border-l-2 border-indigo-200 pl-3">{steps.profile.parsed.brief}</p>
+                )}
+                <p className="text-sm text-gray-700 mt-2">{steps.profile?.finalText || profile.statement || '—'}</p>
               </div>
               <button onClick={() => onEditStep('profile')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
             </div>
           </Section>
 
           {/* Skills */}
-          <Section title="2. Skills">
+          <Section title="2. ทักษะ">
             <div className="flex items-start justify-between">
               <div className="flex-1">
+                {steps.skills?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic mb-2 border-l-2 border-indigo-200 pl-3">{steps.skills.parsed.brief}</p>
+                )}
                 <div className="flex flex-wrap gap-1.5">
                   {skills.length > 0 ? skills.map(s => (
                     <span key={s} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">{s}</span>
@@ -215,14 +242,24 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           </Section>
 
           {/* Projects */}
-          <Section title="3. Projects">
+          <Section title="3. โครงการ">
             <div className="flex items-start justify-between">
               <div className="flex-1 space-y-3">
+                {steps.projects?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{steps.projects.parsed.brief}</p>
+                )}
                 {projects.length > 0 ? projects.map((p, i) => (
                   <div key={i} className="border border-gray-100 rounded-lg p-3">
                     <p className="text-sm font-semibold text-gray-900">{p.title} {p.period && <span className="font-normal text-gray-400">({p.period})</span>}</p>
                     {p.description && <p className="text-xs text-gray-600 mt-1">{p.description}</p>}
                     {p.impact && <p className="text-xs text-indigo-600 mt-1">💡 {p.impact}</p>}
+                    {p.references?.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {p.references.map((ref, ri) => (
+                          <p key={ri} className="text-xs text-gray-400 italic">📚 {ref}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
               </div>
@@ -231,9 +268,12 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           </Section>
 
           {/* Process */}
-          <Section title="4. Process">
+          <Section title="4. กระบวนการ">
             <div className="flex items-start justify-between">
               <div className="flex-1">
+                {steps.process?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic mb-2 border-l-2 border-indigo-200 pl-3">{steps.process.parsed.brief}</p>
+                )}
                 <div className="flex flex-wrap gap-1.5">
                   {process.length > 0 ? process.map(s => (
                     <span key={s} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">{s}</span>
@@ -245,9 +285,12 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           </Section>
 
           {/* Evidence */}
-          <Section title="5. Evidence">
+          <Section title="5. หลักฐาน">
             <div className="flex items-start justify-between">
               <div className="flex-1 space-y-2">
+                {steps.evidence?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{steps.evidence.parsed.brief}</p>
+                )}
                 {evidence.length > 0 ? evidence.map((e, i) => (
                   <div key={i} className="border border-gray-100 rounded-lg p-3">
                     <div className="flex items-center gap-2">
@@ -255,6 +298,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                       {e.year && <span className="text-xs text-gray-400">{e.year}</span>}
                     </div>
                     <p className="text-sm font-medium text-gray-900 mt-1">{e.title}</p>
+                    {e.description && <p className="text-xs text-gray-500 mt-0.5">{e.description}</p>}
                   </div>
                 )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
               </div>
@@ -263,9 +307,12 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           </Section>
 
           {/* Impact */}
-          <Section title="6. Impact">
+          <Section title="6. ผลกระทบ">
             <div className="flex items-start justify-between">
               <div className="flex-1">
+                {steps.impact?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic mb-2 border-l-2 border-indigo-200 pl-3">{steps.impact.parsed.brief}</p>
+                )}
                 {impact.length > 0 ? (
                   <ul className="space-y-1">
                     {impact.map((i, idx) => (
@@ -279,12 +326,50 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
           </Section>
 
           {/* Reflection */}
-          <Section title="7. Reflection">
+          <Section title="7. การสะท้อนคิด">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <p className="text-sm text-gray-700 whitespace-pre-wrap">{reflection || <span className="text-gray-400">ยังไม่ได้เขียน</span>}</p>
               </div>
               <button onClick={() => onEditStep('reflection')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
+            </div>
+          </Section>
+
+          {/* Commercialization Gaps */}
+          <Section title="8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)">
+            <div className="flex items-start justify-between">
+              <div className="flex-1 space-y-3">
+                {steps.commercialization?.parsed?.brief && (
+                  <p className="text-sm text-gray-500 italic border-l-2 border-amber-300 pl-3">{steps.commercialization.parsed.brief}</p>
+                )}
+                {gaps.length > 0 ? gaps.map((g, i) => (
+                  <div key={i} className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+                    <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
+                    {g.description && <p className="text-xs text-gray-600 mt-1">{g.description}</p>}
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {g.opportunity && (
+                        <div className="bg-green-100 rounded p-2">
+                          <p className="text-xs font-medium text-green-700">โอกาส</p>
+                          <p className="text-xs text-green-600 mt-0.5">{g.opportunity}</p>
+                        </div>
+                      )}
+                      {g.barrier && (
+                        <div className="bg-red-100 rounded p-2">
+                          <p className="text-xs font-medium text-red-700">อุปสรรค</p>
+                          <p className="text-xs text-red-600 mt-0.5">{g.barrier}</p>
+                        </div>
+                      )}
+                      {g.recommendation && (
+                        <div className="bg-blue-100 rounded p-2">
+                          <p className="text-xs font-medium text-blue-700">คำแนะนำ</p>
+                          <p className="text-xs text-blue-600 mt-0.5">{g.recommendation}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )) : <span className="text-gray-400 text-sm">ยังไม่ได้วิเคราะห์</span>}
+              </div>
+              <button onClick={() => onEditStep('commercialization')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
             </div>
           </Section>
         </div>

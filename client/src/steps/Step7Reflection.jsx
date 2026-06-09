@@ -20,7 +20,7 @@ export default function Step7Reflection({ project, onSave }) {
     try {
       const content = await aiComplete([{
         role: 'user',
-        content: `You are a writing coach. Polish this researcher's reflection statement for a mentorship portfolio. Keep the same meaning and personal voice, but improve clarity, flow, and depth. Return only the improved text:\n\n${text}`
+        content: `คุณคือโค้ชการเขียน ปรับปรุงบทสะท้อนคิดของนักวิจัยคนนี้สำหรับ Portfolio การเป็นพี่เลี้ยง รักษาความหมายและเอกลักษณ์เดิม แต่ปรับปรุงความชัดเจน ความลื่นไหล และความลึก ใช้ภาษาไทยทั้งหมด ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน" ตอบเฉพาะข้อความที่ปรับปรุงแล้วเท่านั้น:\n\n${text}`
       }]);
       setText(content.trim());
     } catch (err) {
