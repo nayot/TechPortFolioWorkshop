@@ -79,12 +79,12 @@ export default function Step5Evidence({ project, onSave }) {
             {showAdd ? (
               <div className="border border-dashed border-gray-300 rounded-lg p-4 space-y-2">
                 <p className="text-sm font-medium text-gray-700">เพิ่มหลักฐานด้วยตนเอง</p>
-                <select className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm" value={extra.type} onChange={e => setExtra(p => ({ ...p, type: e.target.value }))}>
+                <select className="w-full border border-warm-border rounded px-3 py-1.5 text-sm bg-white" value={extra.type} onChange={e => setExtra(p => ({ ...p, type: e.target.value }))}>
                   {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
-                <input className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ชื่อ *" value={extra.title} onChange={e => setExtra(p => ({ ...p, title: e.target.value }))} />
-                <input className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ปี" value={extra.year} onChange={e => setExtra(p => ({ ...p, year: e.target.value }))} />
-                <textarea className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" rows={2} placeholder="คำอธิบาย" value={extra.description} onChange={e => setExtra(p => ({ ...p, description: e.target.value }))} />
+                <input className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" placeholder="ชื่อ *" value={extra.title} onChange={e => setExtra(p => ({ ...p, title: e.target.value }))} />
+                <input className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" placeholder="ปี" value={extra.year} onChange={e => setExtra(p => ({ ...p, year: e.target.value }))} />
+                <textarea className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" rows={2} placeholder="คำอธิบาย" value={extra.description} onChange={e => setExtra(p => ({ ...p, description: e.target.value }))} />
                 <div className="flex gap-2">
                   <button onClick={addItem} className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">เพิ่ม</button>
                   <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-gray-500 text-sm">ยกเลิก</button>

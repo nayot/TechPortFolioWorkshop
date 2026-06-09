@@ -4,7 +4,7 @@ import { api } from '../api.js';
 function EditableText({ value, onChange, rows = 4, placeholder = '' }) {
   return (
     <textarea
-      className="w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold bg-parchment text-navy"
+      className="w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 focus:border-gold bg-white text-navy"
       rows={rows}
       value={value}
       onChange={e => onChange(e.target.value)}

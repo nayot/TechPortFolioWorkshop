@@ -75,7 +75,7 @@ export default function Step6Impact({ project, onSave }) {
 
             <div className="flex gap-2">
               <input
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="flex-1 border border-warm-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
                 placeholder="เพิ่มผลกระทบด้วยตนเอง..."
                 value={customItem}
                 onChange={e => setCustomItem(e.target.value)}

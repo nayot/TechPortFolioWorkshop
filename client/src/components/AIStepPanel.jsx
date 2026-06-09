@@ -75,7 +75,7 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
           <span className="text-warm-muted">{promptVisible ? '▲' : '▼'}</span>
         </button>
         {promptVisible && (
-          <div className="p-3 bg-parchment">
+          <div className="p-3 bg-white/70">
             <textarea
               className="w-full text-xs font-mono border border-warm-border rounded p-2 resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
               rows={10}

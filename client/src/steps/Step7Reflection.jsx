@@ -103,7 +103,7 @@ export default function Step7Reflection({ project, onSave }) {
                 </button>
               </div>
               <textarea
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
                 rows={12}
                 value={text}
                 onChange={e => setText(e.target.value)}

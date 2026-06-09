@@ -79,7 +79,7 @@ export default function Step1Profile({ project, onSave }) {
               <label key={key} className="block">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
                 <input
-                  className="mt-1 w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="mt-1 w-full border border-warm-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
                   value={fields[key] || parsed[key] || ''}
                   onChange={e => setFields(prev => ({ ...prev, [key]: e.target.value }))}
                 />
@@ -91,7 +91,7 @@ export default function Step1Profile({ project, onSave }) {
               <div className="sm:col-span-2">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">คำอธิบายโดยย่อ</span>
                 <textarea
-                  className="mt-1 w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  className="mt-1 w-full border border-warm-border rounded-md px-3 py-1.5 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
                   rows={2}
                   value={brief}
                   onChange={e => setBrief(e.target.value)}
@@ -121,7 +121,7 @@ export default function Step1Profile({ project, onSave }) {
               </div>
               <div className="flex gap-1.5 mt-2">
                 <input
-                  className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                  className="flex-1 border border-warm-border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-gold/40 bg-white"
                   placeholder="เพิ่ม keyword..."
                   value={newKeyword}
                   onChange={e => setNewKeyword(e.target.value)}
@@ -141,7 +141,7 @@ export default function Step1Profile({ project, onSave }) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">คำแถลงโปรไฟล์</label>
           <textarea
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            className="w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
             rows={5}
             value={statement}
             onChange={e => setStatement(e.target.value)}
@@ -176,7 +176,7 @@ export default function Step1Profile({ project, onSave }) {
   return (
     <div className="space-y-5">
       {/* CV upload */}
-      <div className="border-2 border-dashed border-gray-200 rounded-xl p-5">
+      <div className="border-2 border-dashed border-warm-border rounded-xl p-5">
         <p className="text-sm font-medium text-gray-700 mb-2">อัปโหลด CV (PDF หรือ DOCX)</p>
         {cvFileName && (
           <p className="text-xs text-green-600 mb-2">✓ {cvFileName} — ข้อความถูกดึงแล้ว ({cvText.length} ตัวอักษร)</p>

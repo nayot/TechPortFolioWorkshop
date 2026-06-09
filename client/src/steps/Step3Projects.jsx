@@ -83,10 +83,10 @@ export default function Step3Projects({ project, onSave }) {
             {showAdd ? (
               <div className="border border-dashed border-gray-300 rounded-lg p-4 space-y-2">
                 <p className="text-sm font-medium text-gray-700">เพิ่มโครงการด้วยตนเอง</p>
-                <input className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ชื่อโครงการ *" value={extra.title} onChange={e => setExtra(p => ({ ...p, title: e.target.value }))} />
-                <input className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ปี / ช่วงเวลา" value={extra.period} onChange={e => setExtra(p => ({ ...p, period: e.target.value }))} />
-                <textarea className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" rows={2} placeholder="คำอธิบาย" value={extra.description} onChange={e => setExtra(p => ({ ...p, description: e.target.value }))} />
-                <input className="w-full border border-gray-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" placeholder="ผลกระทบหลัก" value={extra.impact} onChange={e => setExtra(p => ({ ...p, impact: e.target.value }))} />
+                <input className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" placeholder="ชื่อโครงการ *" value={extra.title} onChange={e => setExtra(p => ({ ...p, title: e.target.value }))} />
+                <input className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" placeholder="ปี / ช่วงเวลา" value={extra.period} onChange={e => setExtra(p => ({ ...p, period: e.target.value }))} />
+                <textarea className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" rows={2} placeholder="คำอธิบาย" value={extra.description} onChange={e => setExtra(p => ({ ...p, description: e.target.value }))} />
+                <input className="w-full border border-warm-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white" placeholder="ผลกระทบหลัก" value={extra.impact} onChange={e => setExtra(p => ({ ...p, impact: e.target.value }))} />
                 <div className="flex gap-2">
                   <button onClick={addProject} className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700">เพิ่ม</button>
                   <button onClick={() => setShowAdd(false)} className="px-3 py-1.5 text-gray-500 text-sm">ยกเลิก</button>
