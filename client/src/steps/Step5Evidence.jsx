@@ -35,7 +35,12 @@ export default function Step5Evidence({ project, onSave }) {
   return (
     <AIStepPanel
       stepConfig={stepConfig}
-      buildContext={() => ({ cvText: project.cvText, profile })}
+      buildContext={() => ({
+        cvText: project.cvText,
+        profile,
+        skills: project.steps?.skills?.selections || [],
+        projects: project.steps?.projects?.selections || [],
+      })}
       outputType="selectable-cards"
       onSave={data => onSave({ ...data, selections: items.filter(e => selected.has(e.title)) })}
       savedData={saved}

@@ -28,7 +28,13 @@ export default function Step6Impact({ project, onSave }) {
   return (
     <AIStepPanel
       stepConfig={stepConfig}
-      buildContext={() => ({ cvText: project.cvText, profile, projects })}
+      buildContext={() => ({
+        cvText: project.cvText,
+        profile,
+        skills: project.steps?.skills?.selections || [],
+        projects,
+        evidence: project.steps?.evidence?.selections || [],
+      })}
       outputType="selectable-list"
       onSave={data => onSave({ ...data, selections: [...selected] })}
       savedData={saved}

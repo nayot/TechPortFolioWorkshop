@@ -11,7 +11,7 @@ export default function Stepper({ currentStep, completedSteps = [], onStepClick 
             key={step.id}
             onClick={() => onStepClick(step.id)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors font-medium ${
-              isCurrent
+              isCurrent && !isDone
                 ? 'bg-indigo-600 text-white'
                 : isDone
                 ? 'bg-green-100 text-green-800 hover:bg-green-200'
@@ -19,9 +19,9 @@ export default function Stepper({ currentStep, completedSteps = [], onStepClick 
             }`}
           >
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-              isCurrent ? 'bg-white/30 text-white' : isDone ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
+              isCurrent && !isDone ? 'bg-white/30 text-white' : isDone ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-600'
             }`}>
-              {isDone && !isCurrent ? '✓' : step.number}
+              {isDone ? '✓' : step.number}
             </span>
             <span>{step.titleTh}</span>
           </button>

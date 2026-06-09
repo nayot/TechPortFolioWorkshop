@@ -40,6 +40,7 @@ ${cvText || '(ไม่มี CV — กรุณากรอกข้อมู�
 
 [CONTEXT] โปรไฟล์นักวิจัย: ${profile?.statement || '(ดูจาก CV)'}
 สาขาวิจัย: ${profile?.domain || ''}
+ความเชี่ยวชาญ: ${profile?.expertise?.join(', ') || ''}
 CV:
 """
 ${cvText || '(ไม่มี CV)'}
@@ -58,12 +59,14 @@ ${cvText || '(ไม่มี CV)'}
     titleTh: 'โครงการ',
     outputType: 'selectable-cards',
     description: 'โครงการวิจัย/นวัตกรรมสำคัญ พร้อมแหล่งอ้างอิง',
-    buildPrompt: ({ cvText, profile }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+    buildPrompt: ({ cvText, profile, skills }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
-[TASK] ดึงโครงการวิจัย/นวัตกรรมสำคัญจาก CV นี้ แล้วจัดอันดับตามผลกระทบและความเกี่ยวข้องกับการเป็นพี่เลี้ยงด้านเกษตร อาหาร และสุขภาพ นอกจากนี้ ให้ค้นหาและอ้างอิงผลงานที่เกี่ยวข้องจาก Google Scholar หรือฐานข้อมูลวิชาการที่น่าเชื่อถือ (ใช้ข้อมูลจาก CV เพื่อระบุผลงานจริง)
+[TASK] ดึงโครงการวิจัย/นวัตกรรมสำคัญจาก CV นี้ แล้วจัดอันดับตามผลกระทบและความเกี่ยวข้องกับการเป็นพี่เลี้ยงด้านเกษตร อาหาร และสุขภาพ นอกจากนี้ ให้อ้างอิงผลงานที่เกี่ยวข้องจาก Google Scholar หรือฐานข้อมูลวิชาการ (ใช้ข้อมูลจาก CV เพื่อระบุผลงานจริง)
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
+ความเชี่ยวชาญ: ${profile?.expertise?.join(', ') || ''}
+ทักษะที่มี: ${Array.isArray(skills) ? skills.join(', ') : ''}
 CV:
 """
 ${cvText || '(ไม่มี CV)'}
@@ -97,7 +100,7 @@ ${cvText || '(ไม่มี CV)'}
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
-ทักษะที่เลือก: ${skills?.join(', ') || ''}
+ทักษะที่เลือก: ${Array.isArray(skills) ? skills.join(', ') : ''}
 CV:
 """
 ${cvText || '(ไม่มี CV)'}
@@ -116,12 +119,14 @@ ${cvText || '(ไม่มี CV)'}
     titleTh: 'หลักฐาน',
     outputType: 'selectable-cards',
     description: 'หลักฐานยืนยัน: ผลงานวิชาการ สิทธิบัตร ทุนวิจัย ต้นแบบ',
-    buildPrompt: ({ cvText, profile }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+    buildPrompt: ({ cvText, profile, skills, projects }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
 [TASK] ดึงและจัดอันดับหลักฐาน (ผลงานวิชาการ สิทธิบัตร ทุนวิจัย รางวัล ต้นแบบ การสาธิต) จาก CV นี้ ตามความเกี่ยวข้องกับการวางตำแหน่งนักวิจัยในฐานะพี่เลี้ยงสำหรับผู้ประกอบการด้านเกษตร อาหาร และสุขภาพ
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
+ทักษะ: ${Array.isArray(skills) ? skills.join(', ') : ''}
+โครงการที่เลือก: ${Array.isArray(projects) ? projects.map(p => p.title).join(', ') : ''}
 CV:
 """
 ${cvText || '(ไม่มี CV)'}
@@ -148,13 +153,15 @@ ${cvText || '(ไม่มี CV)'}
     titleTh: 'ผลกระทบ',
     outputType: 'selectable-list',
     description: 'ผลลัพธ์และคุณค่าที่สร้างขึ้น',
-    buildPrompt: ({ cvText, profile, projects }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+    buildPrompt: ({ cvText, profile, skills, projects, evidence }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
 
 [TASK] เสนอคำแถลงผลกระทบ 8–12 รายการ สำหรับนักวิจัยคนนี้ — ผลลัพธ์และคุณค่าที่เกิดขึ้นจากงานวิจัย ต่อชุมชน อุตสาหกรรม หรือนโยบาย
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
-โครงการที่เลือก: ${projects?.map(p => p.title).join(', ') || ''}
+ทักษะ: ${Array.isArray(skills) ? skills.slice(0, 8).join(', ') : ''}
+โครงการที่เลือก: ${Array.isArray(projects) ? projects.map(p => p.title).join(', ') : ''}
+หลักฐาน/ผลงานที่เลือก: ${Array.isArray(evidence) ? evidence.map(e => e.title).join(', ') : ''}
 CV:
 """
 ${cvText || '(ไม่มี CV)'}
@@ -170,21 +177,44 @@ ${cvText || '(ไม่มี CV)'}
     id: 'reflection',
     number: 7,
     title: 'Reflection',
-    titleTh: 'การสะท้อนคิด',
-    outputType: 'text',
-    description: 'การประเมินตนเองและความพร้อมในการเป็นพี่เลี้ยง',
-    buildPrompt: ({ profile, skills, projects, impact }) => `[ROLE] คุณคือบรรณาธิการ Tech Portfolio และโค้ชการสะท้อนคิด สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+    titleTh: 'Reflection',
+    outputType: 'selectable-cards',
+    description: 'การสะท้อนคิดและความพร้อมในการเป็นพี่เลี้ยง',
+    buildPrompt: ({ profile, skills, projects, evidence, impact }) => `[ROLE] คุณคือโค้ชการสะท้อนคิด (Reflective Practice Coach) สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ (FY2569) ที่เน้นการพัฒนาผู้ประกอบการนักศึกษาในด้านเกษตร อาหาร และสุขภาพ
 
-[TASK] ช่วยนักวิจัยเขียนบทสะท้อนคิดที่ลึกซึ้ง (3–5 ย่อหน้า) ครอบคลุม: (1) การมีส่วนร่วมอันเป็นเอกลักษณ์ในฐานะพี่เลี้ยง (2) เส้นทางการวิจัยของนักวิจัยเตรียมนักวิจัยสู่การแนะนำนักศึกษาผู้ประกอบการอย่างไร (3) วิสัยทัศน์สำหรับความสัมพันธ์พี่เลี้ยง-ลูกศิษย์ และ (4) ความพร้อมและความมุ่งมั่นต่อการเป็นพี่เลี้ยงเชิงลึก
+[TASK] สร้างตัวเลือก Reflection 3 แนวทาง สำหรับนักวิจัยคนนี้ แต่ละแนวทางต้อง**เน้น**:
+1. สิ่งที่นักวิจัยได้เรียนรู้จากเส้นทางวิจัยและนวัตกรรม — บทเรียนสำคัญที่ได้รับ
+2. จุดที่นักวิจัยต้องการพัฒนาตนเองต่อไป — ทั้งด้านวิจัยและการเป็นพี่เลี้ยง
+3. วิธีที่ประสบการณ์วิจัยเตรียมนักวิจัยสำหรับการแนะนำนักศึกษาผู้ประกอบการ
+4. วิสัยทัศน์และความมุ่งมั่นในการเป็นพี่เลี้ยงเชิงลึก
 
-[CONTEXT] นักวิจัย: ${profile?.name || ''}
+[CONTEXT]
+นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
-ทักษะสำคัญ: ${skills?.slice(0, 5).join(', ') || ''}
-โครงการสำคัญ: ${projects?.slice(0, 3).map(p => p.title).join(', ') || ''}
-ผลกระทบที่เลือก: ${impact?.slice(0, 3).join('; ') || ''}
-คำแถลงโปรไฟล์: ${profile?.statement || ''}
+โปรไฟล์: ${profile?.statement || profile?.brief || ''}
+ทักษะสำคัญ: ${Array.isArray(skills) ? skills.slice(0, 6).join(', ') : ''}
+โครงการสำคัญ: ${Array.isArray(projects) ? projects.slice(0, 3).map(p => p.title).join(', ') : ''}
+หลักฐานผลงาน: ${Array.isArray(evidence) ? evidence.slice(0, 3).map(e => e.title).join(', ') : ''}
+ผลกระทบ: ${Array.isArray(impact) ? impact.slice(0, 3).join('; ') : ''}
 
-[FORMAT] เขียนเป็นภาษาไทย เป็นร้อยแก้ว (ไม่ใช่ JSON ไม่ใช่ bullet point) ขึ้นต้นด้วยย่อหน้าสรุป 2–3 ประโยค แล้วตามด้วยการสะท้อนคิดฉบับสมบูรณ์ ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน/ฉัน" ตลอด`,
+[FORMAT] ตอบเป็น JSON เท่านั้น ไม่มี code fence ตอบ**เป็นภาษาไทย** ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน":
+{
+  "brief": "สรุปธีมหลักของ Reflection 2–3 ประโยค",
+  "items": [
+    {
+      "title": "แนวทาง 1: [ชื่อแนวทาง เช่น เส้นทางแห่งการเรียนรู้และการเติบโต]",
+      "text": "บท Reflection 3–4 ย่อหน้า เน้นสิ่งที่ได้เรียนรู้และจุดพัฒนาตนเอง"
+    },
+    {
+      "title": "แนวทาง 2: [ชื่อแนวทาง เช่น จากห้องแล็บสู่การเป็นพี่เลี้ยง]",
+      "text": "บท Reflection 3–4 ย่อหน้า เน้นวิสัยทัศน์และความพร้อมในการเป็นพี่เลี้ยง"
+    },
+    {
+      "title": "แนวทาง 3: [ชื่อแนวทาง เช่น เชื่อมวิจัยกับผู้ประกอบการรุ่นใหม่]",
+      "text": "บท Reflection 3–4 ย่อหน้า เน้นการเชื่อมโยงงานวิจัยกับการพัฒนาผู้ประกอบการ"
+    }
+  ]
+}`,
   },
   {
     id: 'commercialization',
@@ -193,15 +223,16 @@ ${cvText || '(ไม่มี CV)'}
     titleTh: 'ช่องว่างเชิงพาณิชย์',
     outputType: 'selectable-cards',
     description: 'ระบุช่องว่างระหว่างงานวิจัยกับการนำไปใช้เชิงพาณิชย์',
-    buildPrompt: ({ cvText, profile, projects, evidence, impact }) => `[ROLE] คุณคือที่ปรึกษาเทคโนโลยีและนวัตกรรมสำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ ผู้เชี่ยวชาญด้านการแปลงงานวิจัยสู่เชิงพาณิชย์ (Technology Transfer & Commercialization)
+    buildPrompt: ({ cvText, profile, skills, projects, evidence, impact }) => `[ROLE] คุณคือที่ปรึกษาเทคโนโลยีและนวัตกรรมสำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ ผู้เชี่ยวชาญด้านการแปลงงานวิจัยสู่เชิงพาณิชย์ (Technology Transfer & Commercialization)
 
 [TASK] วิเคราะห์ Portfolio ของนักวิจัยคนนี้และระบุ "ช่องว่างเชิงพาณิชย์" (Commercialization Gaps) — จุดที่งานวิจัยยังขาดหรือต้องการการพัฒนาเพื่อเข้าสู่ตลาดจริง เสนอ 5–8 ช่องว่างพร้อมคำแนะนำ
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
-โครงการสำคัญ: ${projects?.map(p => p.title).join(', ') || ''}
-หลักฐาน: ${evidence?.map(e => e.title).join(', ') || ''}
-ผลกระทบ: ${impact?.slice(0, 3).join('; ') || ''}
+ทักษะ: ${Array.isArray(skills) ? skills.join(', ') : ''}
+โครงการสำคัญ: ${Array.isArray(projects) ? projects.map(p => p.title).join(', ') : ''}
+หลักฐาน: ${Array.isArray(evidence) ? evidence.map(e => e.title).join(', ') : ''}
+ผลกระทบ: ${Array.isArray(impact) ? impact.slice(0, 3).join('; ') : ''}
 CV:
 """
 ${cvText || '(ไม่มี CV)'}

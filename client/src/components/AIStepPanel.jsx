@@ -19,21 +19,28 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
     setError('');
     const fullPrompt = getPrompt() || stepConfig.buildPrompt(buildContext());
     if (!prompt) setPrompt(fullPrompt);
-    try {
-      const content = await aiComplete([{ role: 'user', content: fullPrompt }]);
-      setRawOutput(content);
-      if (outputType !== 'text') {
-        const p = parseJsonSafe(content);
-        setParsed(p);
-        if (p && onParsed) onParsed(p);
-      } else if (onParsed) {
-        onParsed(content);
+
+    let lastErr;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
+        const content = await aiComplete([{ role: 'user', content: fullPrompt }]);
+        setRawOutput(content);
+        if (outputType !== 'text') {
+          const p = parseJsonSafe(content);
+          setParsed(p);
+          if (p && onParsed) onParsed(p);
+        } else if (onParsed) {
+          onParsed(content);
+        }
+        setLoading(false);
+        return;
+      } catch (err) {
+        lastErr = err;
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
+    setError(lastErr.message);
+    setLoading(false);
   }
 
   function handleSave(finalData) {
@@ -47,7 +54,6 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
 
   return (
     <div className="space-y-4">
-      {/* Prompt editor */}
       <div className="border border-gray-200 rounded-lg overflow-hidden">
         <button
           onClick={() => setPromptVisible(v => !v)}
@@ -69,7 +75,6 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
         )}
       </div>
 
-      {/* Generate button */}
       <div className="flex gap-2">
         <button
           onClick={generate}
@@ -94,7 +99,6 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
         </div>
       )}
 
-      {/* Step-specific output + save UI */}
       {children({ rawOutput, parsed, onSave: handleSave, loading })}
     </div>
   );

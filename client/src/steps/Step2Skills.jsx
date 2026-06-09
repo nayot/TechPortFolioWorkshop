@@ -53,7 +53,7 @@ export default function Step2Skills({ project, onSave }) {
             {brief && <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{brief}</p>}
             {skills.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">เลือกทักษะที่ตรงกับคุณ</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">เลือกทักษะให้ตรงกับนักวิจัย</p>
                 <div className="flex flex-wrap gap-2">
                   {skills.map(skill => (
                     <button

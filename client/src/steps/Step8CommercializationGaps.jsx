@@ -26,7 +26,14 @@ export default function Step8CommercializationGaps({ project, onSave }) {
   return (
     <AIStepPanel
       stepConfig={stepConfig}
-      buildContext={() => ({ cvText: project.cvText, profile, projects, evidence, impact })}
+      buildContext={() => ({
+        cvText: project.cvText,
+        profile,
+        skills: project.steps?.skills?.selections || [],
+        projects,
+        evidence,
+        impact,
+      })}
       outputType="selectable-cards"
       onSave={data => onSave({ ...data, selections: gaps.filter(g => selected.has(g.gap)) })}
       savedData={saved}

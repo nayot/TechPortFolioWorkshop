@@ -33,7 +33,7 @@ export default function Step3Projects({ project, onSave }) {
   return (
     <AIStepPanel
       stepConfig={stepConfig}
-      buildContext={() => ({ cvText: project.cvText, profile })}
+      buildContext={() => ({ cvText: project.cvText, profile, skills: project.steps?.skills?.selections || [] })}
       outputType="selectable-cards"
       onSave={data => onSave({ ...data, selections: projects.filter(p => selected.has(p.title)) })}
       savedData={saved}

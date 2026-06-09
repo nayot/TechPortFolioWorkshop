@@ -1,29 +1,51 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 
-function Section({ title, children }) {
+function EditableText({ value, onChange, rows = 4, placeholder = '' }) {
+  return (
+    <textarea
+      className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-indigo-50"
+      rows={rows}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
+    />
+  );
+}
+
+function Section({ title, onEdit, editing, children }) {
   return (
     <section className="mb-8">
-      <h2 className="text-lg font-bold text-indigo-700 border-b border-indigo-100 pb-2 mb-3">{title}</h2>
+      <div className="flex items-center justify-between border-b border-indigo-100 pb-2 mb-3">
+        <h2 className="text-lg font-bold text-indigo-700">{title}</h2>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className={`text-xs px-2 py-1 rounded transition-colors ${
+              editing ? 'bg-indigo-100 text-indigo-700' : 'text-indigo-400 hover:text-indigo-600'
+            }`}
+          >
+            {editing ? '✓ เสร็จแล้ว' : '✏️ แก้ไข'}
+          </button>
+        )}
+      </div>
       {children}
     </section>
   );
 }
 
-function buildHtml(project) {
+function buildHtml(draft, project) {
   const steps = project.steps || {};
-  const profile = steps.profile?.fields || steps.profile?.parsed || {};
+  const prof = steps.profile?.fields || steps.profile?.parsed || {};
   const skills = steps.skills?.selections || [];
-  const skillsStatement = steps.skills?.finalText || '';
   const projects = steps.projects?.selections || [];
   const process = steps.process?.selections || [];
   const evidence = steps.evidence?.selections || [];
   const impact = steps.impact?.selections || [];
-  const reflection = steps.reflection?.finalText || '';
   const gaps = steps.commercialization?.selections || [];
 
   return `<!DOCTYPE html>
-<html lang="th"><head><meta charset="UTF-8"><title>Tech Portfolio — ${profile.name || ''}</title>
+<html lang="th"><head><meta charset="UTF-8"><title>Tech Portfolio — ${prof.name || ''}</title>
 <style>body{font-family:Sarabun,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#333}
 h1{color:#1a1a2e}h2{color:#4338ca;border-bottom:2px solid #e0e7ff;padding-bottom:8px}
 .brief{background:#eef2ff;border-left:4px solid #818cf8;padding:10px 14px;border-radius:4px;margin-bottom:12px;font-style:italic}
@@ -34,64 +56,63 @@ h1{color:#1a1a2e}h2{color:#4338ca;border-bottom:2px solid #e0e7ff;padding-bottom
 .gap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
 .gap-col{padding:8px;border-radius:6px;font-size:12px}
 .opp{background:#dcfce7}.bar{background:#fee2e2}.rec{background:#dbeafe}
-.label{font-size:12px;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em}
+.label{font-size:12px;color:#6b7280;text-transform:uppercase}
 .ref{font-size:11px;color:#9ca3af;font-style:italic;margin-top:4px}</style>
 </head><body>
-<h1>${profile.name || 'Tech Portfolio'}</h1>
-<p><strong>${profile.position || ''}</strong>${profile.institution ? ' · ' + profile.institution : ''}</p>
+<h1>${prof.name || 'Tech Portfolio'}</h1>
+<p><strong>${prof.position || ''}</strong>${prof.institution ? ' · ' + prof.institution : ''}</p>
 
 <h2>1. โปรไฟล์</h2>
-${steps.profile?.parsed?.brief ? `<p class="brief">${steps.profile.parsed.brief}</p>` : ''}
-<p>${steps.profile?.finalText || profile.statement || ''}</p>
+${draft.profileBrief ? `<p class="brief">${draft.profileBrief}</p>` : ''}
+<p>${draft.profileStatement}</p>
 
 <h2>2. ทักษะ</h2>
-${steps.skills?.parsed?.brief ? `<p class="brief">${steps.skills.parsed.brief}</p>` : ''}
+${draft.skillsBrief ? `<p class="brief">${draft.skillsBrief}</p>` : ''}
 <div class="chips">${skills.map(s => `<span class="chip">${s}</span>`).join('')}</div>
-${skillsStatement ? `<p style="margin-top:12px">${skillsStatement}</p>` : ''}
+${draft.skillsStatement ? `<p style="margin-top:12px">${draft.skillsStatement}</p>` : ''}
 
 <h2>3. โครงการ</h2>
-${steps.projects?.parsed?.brief ? `<p class="brief">${steps.projects.parsed.brief}</p>` : ''}
+${draft.projectsBrief ? `<p class="brief">${draft.projectsBrief}</p>` : ''}
 ${projects.map(p => `<div class="card"><strong>${p.title}</strong>${p.period ? ` (${p.period})` : ''}<p>${p.description || ''}</p>${p.impact ? `<p><em>💡 ${p.impact}</em></p>` : ''}${p.references?.length ? `<div class="ref">${p.references.map(r => `📚 ${r}`).join('<br/>')}</div>` : ''}</div>`).join('')}
 
 <h2>4. กระบวนการ</h2>
-${steps.process?.parsed?.brief ? `<p class="brief">${steps.process.parsed.brief}</p>` : ''}
+${draft.processBrief ? `<p class="brief">${draft.processBrief}</p>` : ''}
 <div class="chips">${process.map(s => `<span class="chip">${s}</span>`).join('')}</div>
 
 <h2>5. หลักฐาน</h2>
-${steps.evidence?.parsed?.brief ? `<p class="brief">${steps.evidence.parsed.brief}</p>` : ''}
+${draft.evidenceBrief ? `<p class="brief">${draft.evidenceBrief}</p>` : ''}
 ${evidence.map(e => `<div class="card"><span class="label">${e.type}</span> ${e.year ? `(${e.year})` : ''}<p><strong>${e.title}</strong></p><p>${e.description || ''}</p></div>`).join('')}
 
 <h2>6. ผลกระทบ</h2>
-${steps.impact?.parsed?.brief ? `<p class="brief">${steps.impact.parsed.brief}</p>` : ''}
+${draft.impactBrief ? `<p class="brief">${draft.impactBrief}</p>` : ''}
 <ul>${impact.map(i => `<li>${i}</li>`).join('')}</ul>
 
-<h2>7. การสะท้อนคิด</h2>
-<p style="white-space:pre-wrap">${reflection}</p>
+<h2>7. Reflection</h2>
+<p style="white-space:pre-wrap">${draft.reflection}</p>
 
 <h2>8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)</h2>
-${steps.commercialization?.parsed?.brief ? `<p class="brief">${steps.commercialization.parsed.brief}</p>` : ''}
+${draft.gapsBrief ? `<p class="brief">${draft.gapsBrief}</p>` : ''}
 ${gaps.map(g => `<div class="gap-card"><strong>🔍 ${g.gap}</strong><p>${g.description || ''}</p><div class="gap-grid"><div class="gap-col opp"><strong>โอกาส:</strong> ${g.opportunity || ''}</div><div class="gap-col bar"><strong>อุปสรรค:</strong> ${g.barrier || ''}</div><div class="gap-col rec"><strong>คำแนะนำ:</strong> ${g.recommendation || ''}</div></div></div>`).join('')}
 </body></html>`;
 }
 
-function buildMarkdownBrief(project) {
+function buildMarkdownBrief(draft, project) {
   const steps = project.steps || {};
-  const profile = steps.profile?.fields || steps.profile?.parsed || {};
+  const prof = steps.profile?.fields || steps.profile?.parsed || {};
   const skills = steps.skills?.selections || [];
   const projects = steps.projects?.selections || [];
   const process = steps.process?.selections || [];
   const impact = steps.impact?.selections || [];
-  const reflection = steps.reflection?.finalText || '';
   const gaps = steps.commercialization?.selections || [];
 
   return `# Tech Portfolio Infographic Brief
 
-**นักวิจัย:** ${profile.name || 'N/A'}
-**สาขา:** ${profile.domain || 'N/A'}
-**สังกัด:** ${profile.institution || 'N/A'}
+**นักวิจัย:** ${prof.name || 'N/A'}
+**สาขา:** ${prof.domain || 'N/A'}
+**สังกัด:** ${prof.institution || 'N/A'}
 
 ## สรุปโปรไฟล์
-${steps.profile?.parsed?.brief || steps.profile?.finalText || profile.statement || 'N/A'}
+${draft.profileBrief ? draft.profileBrief + '\n\n' : ''}${draft.profileStatement || 'N/A'}
 
 ## ทักษะ (${skills.length} รายการ)
 ${skills.map(s => `- ${s}`).join('\n')}
@@ -105,14 +126,31 @@ ${process.map(p => `- ${p}`).join('\n')}
 ## ผลกระทบ
 ${impact.map(i => `- ${i}`).join('\n')}
 
-## การสะท้อนคิด
-${reflection}
+## Reflection
+${draft.reflection || 'N/A'}
 
 ## ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)
 ${gaps.map(g => `- **${g.gap}**: ${g.description || ''}\n  - โอกาส: ${g.opportunity || ''}\n  - คำแนะนำ: ${g.recommendation || ''}`).join('\n')}
 
 ---
 *วางข้อความนี้ใน ChatGPT หรือ Gemini พร้อมคำสั่ง: "สร้าง Infographic มืออาชีพสำหรับ Tech Portfolio ของนักวิจัยคนนี้ ใช้สไตล์วิชาการที่สะอาดตา พร้อมธีมสีของโครงการ Deep Mentorship Program มหาวิทยาลัยแม่โจ้"*`;
+}
+
+function initDraft(project) {
+  const steps = project.steps || {};
+  const prof = steps.profile?.fields || steps.profile?.parsed || {};
+  return {
+    profileStatement: steps.profile?.finalText || prof.statement || '',
+    profileBrief: prof.brief || steps.profile?.parsed?.brief || '',
+    skillsBrief: steps.skills?.parsed?.brief || '',
+    skillsStatement: steps.skills?.finalText || '',
+    projectsBrief: steps.projects?.parsed?.brief || '',
+    processBrief: steps.process?.parsed?.brief || '',
+    evidenceBrief: steps.evidence?.parsed?.brief || '',
+    impactBrief: steps.impact?.parsed?.brief || '',
+    reflection: steps.reflection?.finalText || '',
+    gapsBrief: steps.commercialization?.parsed?.brief || '',
+  };
 }
 
 export default function AssemblyPage({ project, projectMeta, onEditStep, onBack }) {
@@ -123,8 +161,10 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   const process = steps.process?.selections || [];
   const evidence = steps.evidence?.selections || [];
   const impact = steps.impact?.selections || [];
-  const reflection = steps.reflection?.finalText || '';
   const gaps = steps.commercialization?.selections || [];
+
+  const [draft, setDraft] = useState(() => initDraft(project));
+  const [editing, setEditing] = useState({});
 
   const [exporting, setExporting] = useState(false);
   const [exportLink, setExportLink] = useState('');
@@ -132,11 +172,19 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   const [briefCopied, setBriefCopied] = useState(false);
   const [showBrief, setShowBrief] = useState(false);
 
+  function toggleEdit(key) {
+    setEditing(prev => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function updateDraft(key, value) {
+    setDraft(prev => ({ ...prev, [key]: value }));
+  }
+
   async function exportToGoogleDocs() {
     setExporting(true);
     setExportError('');
     try {
-      const html = buildHtml(project);
+      const html = buildHtml(draft, project);
       const title = `Tech Portfolio — ${profile.name || projectMeta.name}`;
       const data = await api.post(`/api/projects/${projectMeta.id}/export-doc`, { html, title });
       setExportLink(data.link);
@@ -148,7 +196,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   }
 
   function copyBrief() {
-    navigator.clipboard.writeText(buildMarkdownBrief(project));
+    navigator.clipboard.writeText(buildMarkdownBrief(draft, project));
     setBriefCopied(true);
     setTimeout(() => setBriefCopied(false), 2000);
   }
@@ -157,7 +205,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
     <div className="flex flex-col flex-1 min-h-0">
       <div className="border-b border-gray-200 px-4 py-3 flex items-center justify-between bg-white sticky top-0 z-10">
         <button onClick={onBack} className="text-sm text-gray-500 hover:text-gray-700">← กลับแก้ไข</button>
-        <h2 className="text-sm font-semibold text-gray-900">ภาพรวม Portfolio</h2>
+        <h2 className="text-sm font-semibold text-gray-900">Tech Portfolio ฉบับสมบูรณ์</h2>
         <div className="flex gap-2">
           <button
             onClick={() => setShowBrief(v => !v)}
@@ -196,180 +244,158 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                 </button>
               </div>
               <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono overflow-auto max-h-64">
-                {buildMarkdownBrief(project)}
+                {buildMarkdownBrief(draft, project)}
               </pre>
             </div>
           )}
 
-          {/* Profile */}
-          <Section title="1. โปรไฟล์">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">{profile.name || '—'}</p>
-                <p className="text-sm text-gray-500">{profile.position}{profile.institution ? ' · ' + profile.institution : ''}</p>
-                {profile.expertise && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {profile.expertise.map(k => (
-                      <span key={k} className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">{k}</span>
-                    ))}
-                  </div>
-                )}
-                {steps.profile?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic mt-2 border-l-2 border-indigo-200 pl-3">{steps.profile.parsed.brief}</p>
-                )}
-                <p className="text-sm text-gray-700 mt-2">{steps.profile?.finalText || profile.statement || '—'}</p>
-              </div>
-              <button onClick={() => onEditStep('profile')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
-            </div>
-          </Section>
-
-          {/* Skills */}
-          <Section title="2. ทักษะ">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                {steps.skills?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic mb-2 border-l-2 border-indigo-200 pl-3">{steps.skills.parsed.brief}</p>
-                )}
+          {/* 1. Profile */}
+          <Section title="1. โปรไฟล์" onEdit={() => toggleEdit('profile')} editing={editing.profile}>
+            <div className="space-y-2">
+              <p className="font-semibold text-gray-900">{profile.name || '—'}</p>
+              <p className="text-sm text-gray-500">{profile.position}{profile.institution ? ' · ' + profile.institution : ''}</p>
+              {profile.expertise?.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {skills.length > 0 ? skills.map(s => (
-                    <span key={s} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">{s}</span>
-                  )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
+                  {profile.expertise.map(k => (
+                    <span key={k} className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">{k}</span>
+                  ))}
                 </div>
-                {steps.skills?.finalText && <p className="text-sm text-gray-700 mt-3">{steps.skills.finalText}</p>}
-              </div>
-              <button onClick={() => onEditStep('skills')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
+              )}
+              {editing.profile ? (
+                <div className="space-y-2 pt-1">
+                  <label className="text-xs font-medium text-gray-500">คำอธิบายโดยย่อ</label>
+                  <EditableText value={draft.profileBrief} onChange={v => updateDraft('profileBrief', v)} rows={2} />
+                  <label className="text-xs font-medium text-gray-500">คำแถลงโปรไฟล์</label>
+                  <EditableText value={draft.profileStatement} onChange={v => updateDraft('profileStatement', v)} rows={5} />
+                </div>
+              ) : (
+                <>
+                  {draft.profileBrief && <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{draft.profileBrief}</p>}
+                  <p className="text-sm text-gray-700">{draft.profileStatement || '—'}</p>
+                </>
+              )}
+              <button onClick={() => onEditStep('profile')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
             </div>
           </Section>
 
-          {/* Projects */}
+          {/* 2. Skills */}
+          <Section title="2. ทักษะ" onEdit={() => toggleEdit('skills')} editing={editing.skills}>
+            <div className="space-y-2">
+              {editing.skills ? (
+                <>
+                  <label className="text-xs font-medium text-gray-500">คำแถลงทักษะ</label>
+                  <EditableText value={draft.skillsStatement} onChange={v => updateDraft('skillsStatement', v)} rows={3} />
+                </>
+              ) : (
+                <>
+                  {draft.skillsBrief && <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{draft.skillsBrief}</p>}
+                  <div className="flex flex-wrap gap-1.5">
+                    {skills.length > 0 ? skills.map(s => (
+                      <span key={s} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">{s}</span>
+                    )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
+                  </div>
+                  {draft.skillsStatement && <p className="text-sm text-gray-700 mt-2">{draft.skillsStatement}</p>}
+                </>
+              )}
+              <button onClick={() => onEditStep('skills')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+            </div>
+          </Section>
+
+          {/* 3. Projects */}
           <Section title="3. โครงการ">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 space-y-3">
-                {steps.projects?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{steps.projects.parsed.brief}</p>
-                )}
-                {projects.length > 0 ? projects.map((p, i) => (
-                  <div key={i} className="border border-gray-100 rounded-lg p-3">
-                    <p className="text-sm font-semibold text-gray-900">{p.title} {p.period && <span className="font-normal text-gray-400">({p.period})</span>}</p>
-                    {p.description && <p className="text-xs text-gray-600 mt-1">{p.description}</p>}
-                    {p.impact && <p className="text-xs text-indigo-600 mt-1">💡 {p.impact}</p>}
-                    {p.references?.length > 0 && (
-                      <div className="mt-1 space-y-0.5">
-                        {p.references.map((ref, ri) => (
-                          <p key={ri} className="text-xs text-gray-400 italic">📚 {ref}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
-              </div>
-              <button onClick={() => onEditStep('projects')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
-            </div>
-          </Section>
-
-          {/* Process */}
-          <Section title="4. กระบวนการ">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                {steps.process?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic mb-2 border-l-2 border-indigo-200 pl-3">{steps.process.parsed.brief}</p>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {process.length > 0 ? process.map(s => (
-                    <span key={s} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">{s}</span>
-                  )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
+            <div className="space-y-3">
+              {draft.projectsBrief && <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{draft.projectsBrief}</p>}
+              {projects.length > 0 ? projects.map((p, i) => (
+                <div key={i} className="border border-gray-100 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-gray-900">{p.title} {p.period && <span className="font-normal text-gray-400">({p.period})</span>}</p>
+                  {p.description && <p className="text-xs text-gray-600 mt-1">{p.description}</p>}
+                  {p.impact && <p className="text-xs text-indigo-600 mt-1">💡 {p.impact}</p>}
+                  {p.references?.length > 0 && (
+                    <div className="mt-1 space-y-0.5">
+                      {p.references.map((ref, ri) => <p key={ri} className="text-xs text-gray-400 italic">📚 {ref}</p>)}
+                    </div>
+                  )}
                 </div>
-              </div>
-              <button onClick={() => onEditStep('process')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
+              )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
+              <button onClick={() => onEditStep('projects')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
             </div>
           </Section>
 
-          {/* Evidence */}
-          <Section title="5. หลักฐาน">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 space-y-2">
-                {steps.evidence?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{steps.evidence.parsed.brief}</p>
-                )}
-                {evidence.length > 0 ? evidence.map((e, i) => (
-                  <div key={i} className="border border-gray-100 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{e.type}</span>
-                      {e.year && <span className="text-xs text-gray-400">{e.year}</span>}
-                    </div>
-                    <p className="text-sm font-medium text-gray-900 mt-1">{e.title}</p>
-                    {e.description && <p className="text-xs text-gray-500 mt-0.5">{e.description}</p>}
-                  </div>
+          {/* 4. Process */}
+          <Section title="4. กระบวนการ">
+            <div className="space-y-2">
+              {draft.processBrief && <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{draft.processBrief}</p>}
+              <div className="flex flex-wrap gap-1.5">
+                {process.length > 0 ? process.map(s => (
+                  <span key={s} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">{s}</span>
                 )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
               </div>
-              <button onClick={() => onEditStep('evidence')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
+              <button onClick={() => onEditStep('process')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
             </div>
           </Section>
 
-          {/* Impact */}
-          <Section title="6. ผลกระทบ">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                {steps.impact?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic mb-2 border-l-2 border-indigo-200 pl-3">{steps.impact.parsed.brief}</p>
-                )}
-                {impact.length > 0 ? (
-                  <ul className="space-y-1">
-                    {impact.map((i, idx) => (
-                      <li key={idx} className="text-sm text-gray-700 flex gap-2"><span className="text-indigo-400 shrink-0">•</span>{i}</li>
-                    ))}
-                  </ul>
-                ) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
-              </div>
-              <button onClick={() => onEditStep('impact')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
-            </div>
-          </Section>
-
-          {/* Reflection */}
-          <Section title="7. การสะท้อนคิด">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{reflection || <span className="text-gray-400">ยังไม่ได้เขียน</span>}</p>
-              </div>
-              <button onClick={() => onEditStep('reflection')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
-            </div>
-          </Section>
-
-          {/* Commercialization Gaps */}
-          <Section title="8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 space-y-3">
-                {steps.commercialization?.parsed?.brief && (
-                  <p className="text-sm text-gray-500 italic border-l-2 border-amber-300 pl-3">{steps.commercialization.parsed.brief}</p>
-                )}
-                {gaps.length > 0 ? gaps.map((g, i) => (
-                  <div key={i} className="border border-amber-200 bg-amber-50 rounded-lg p-3">
-                    <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
-                    {g.description && <p className="text-xs text-gray-600 mt-1">{g.description}</p>}
-                    <div className="grid grid-cols-3 gap-2 mt-2">
-                      {g.opportunity && (
-                        <div className="bg-green-100 rounded p-2">
-                          <p className="text-xs font-medium text-green-700">โอกาส</p>
-                          <p className="text-xs text-green-600 mt-0.5">{g.opportunity}</p>
-                        </div>
-                      )}
-                      {g.barrier && (
-                        <div className="bg-red-100 rounded p-2">
-                          <p className="text-xs font-medium text-red-700">อุปสรรค</p>
-                          <p className="text-xs text-red-600 mt-0.5">{g.barrier}</p>
-                        </div>
-                      )}
-                      {g.recommendation && (
-                        <div className="bg-blue-100 rounded p-2">
-                          <p className="text-xs font-medium text-blue-700">คำแนะนำ</p>
-                          <p className="text-xs text-blue-600 mt-0.5">{g.recommendation}</p>
-                        </div>
-                      )}
-                    </div>
+          {/* 5. Evidence */}
+          <Section title="5. หลักฐาน">
+            <div className="space-y-2">
+              {draft.evidenceBrief && <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3">{draft.evidenceBrief}</p>}
+              {evidence.length > 0 ? evidence.map((e, i) => (
+                <div key={i} className="border border-gray-100 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{e.type}</span>
+                    {e.year && <span className="text-xs text-gray-400">{e.year}</span>}
                   </div>
-                )) : <span className="text-gray-400 text-sm">ยังไม่ได้วิเคราะห์</span>}
-              </div>
-              <button onClick={() => onEditStep('commercialization')} className="text-xs text-indigo-500 hover:text-indigo-700 ml-4 shrink-0">แก้ไข</button>
+                  <p className="text-sm font-medium text-gray-900 mt-1">{e.title}</p>
+                  {e.description && <p className="text-xs text-gray-500 mt-0.5">{e.description}</p>}
+                </div>
+              )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
+              <button onClick={() => onEditStep('evidence')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+            </div>
+          </Section>
+
+          {/* 6. Impact */}
+          <Section title="6. ผลกระทบ">
+            <div className="space-y-1">
+              {draft.impactBrief && <p className="text-sm text-gray-500 italic border-l-2 border-indigo-200 pl-3 mb-2">{draft.impactBrief}</p>}
+              {impact.length > 0 ? impact.map((item, idx) => (
+                <div key={idx} className="flex gap-2 text-sm text-gray-700"><span className="text-indigo-400 shrink-0">•</span>{item}</div>
+              )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
+              <button onClick={() => onEditStep('impact')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-1 block">↩ แก้ไขใน Wizard</button>
+            </div>
+          </Section>
+
+          {/* 7. Reflection */}
+          <Section title="7. Reflection" onEdit={() => toggleEdit('reflection')} editing={editing.reflection}>
+            {editing.reflection ? (
+              <EditableText value={draft.reflection} onChange={v => updateDraft('reflection', v)} rows={10} placeholder="เขียน Reflection..." />
+            ) : (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap">{draft.reflection || <span className="text-gray-400">ยังไม่ได้เขียน</span>}</p>
+            )}
+            <button onClick={() => onEditStep('reflection')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-2 block">↩ แก้ไขใน Wizard</button>
+          </Section>
+
+          {/* 8. Commercialization Gaps */}
+          <Section title="8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)" onEdit={() => toggleEdit('gaps')} editing={editing.gaps}>
+            <div className="space-y-3">
+              {editing.gaps ? (
+                <>
+                  <label className="text-xs font-medium text-gray-500">สรุปภาพรวม</label>
+                  <EditableText value={draft.gapsBrief} onChange={v => updateDraft('gapsBrief', v)} rows={3} />
+                </>
+              ) : (
+                draft.gapsBrief && <p className="text-sm text-gray-500 italic border-l-2 border-amber-300 pl-3">{draft.gapsBrief}</p>
+              )}
+              {gaps.length > 0 ? gaps.map((g, i) => (
+                <div key={i} className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+                  <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
+                  {g.description && <p className="text-xs text-gray-600 mt-1">{g.description}</p>}
+                  <div className="grid grid-cols-3 gap-2 mt-2">
+                    {g.opportunity && <div className="bg-green-100 rounded p-2"><p className="text-xs font-medium text-green-700">โอกาส</p><p className="text-xs text-green-600 mt-0.5">{g.opportunity}</p></div>}
+                    {g.barrier && <div className="bg-red-100 rounded p-2"><p className="text-xs font-medium text-red-700">อุปสรรค</p><p className="text-xs text-red-600 mt-0.5">{g.barrier}</p></div>}
+                    {g.recommendation && <div className="bg-blue-100 rounded p-2"><p className="text-xs font-medium text-blue-700">คำแนะนำ</p><p className="text-xs text-blue-600 mt-0.5">{g.recommendation}</p></div>}
+                  </div>
+                </div>
+              )) : <span className="text-gray-400 text-sm">ยังไม่ได้วิเคราะห์</span>}
+              <button onClick={() => onEditStep('commercialization')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
             </div>
           </Section>
         </div>
