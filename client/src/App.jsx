@@ -11,8 +11,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState('projects'); // 'projects' | 'wizard' | 'assembly'
   const [currentProject, setCurrentProject] = useState(null); // { id, name, data }
+  const [model, setModel] = useState('');
 
   useEffect(() => {
+    api.get('/api/config').then(d => setModel(d.model)).catch(() => {});
     api.get('/api/auth/me')
       .then(data => setUser(data.user))
       .catch(() => setUser(null))
@@ -56,6 +58,7 @@ export default function App() {
         user={user}
         onLogout={handleLogout}
         projectName={currentProject?.name?.replace('.techport.json', '')}
+        model={model}
       />
 
       <main className="flex flex-col flex-1 min-h-0">

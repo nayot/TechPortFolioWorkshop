@@ -65,6 +65,7 @@ function requireAuth(req, res, next) {
 // ─── Health ───────────────────────────────────────────────────────────────────
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/config', (_req, res) => res.json({ model: OPENROUTER_MODEL || 'unknown' }));
 
 // ─── Auth routes ──────────────────────────────────────────────────────────────
 
@@ -132,38 +133,56 @@ app.post('/api/ai/complete', requireAuth, aiLimiter, async (req, res) => {
     return res.status(400).json({ error: 'messages array required' });
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const MAX_ATTEMPTS = 3;
+  let lastStatus, lastText;
 
-  try {
-    const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': ALLOWED_ORIGIN,
-        'X-Title': 'Maejo Tech Portfolio',
-      },
-      body: JSON.stringify({ model: model || OPENROUTER_MODEL, messages }),
-    });
-    clearTimeout(timeout);
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90_000);
 
-    if (!upstream.ok) {
-      const text = await upstream.text();
-      console.error('[ai] upstream error', upstream.status, text);
-      return res.status(502).json({ error: `AI service returned ${upstream.status}` });
+    try {
+      const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': ALLOWED_ORIGIN,
+          'X-Title': 'Maejo Tech Portfolio',
+        },
+        body: JSON.stringify({ model: model || OPENROUTER_MODEL, messages }),
+      });
+      clearTimeout(timeout);
+
+      if (upstream.status === 429) {
+        lastStatus = 429;
+        lastText = await upstream.text();
+        const retryAfter = parseInt(upstream.headers.get('retry-after') || '5', 10);
+        const delay = Math.min(retryAfter, 15) * 1000;
+        console.warn(`[ai] 429 rate limit (attempt ${attempt + 1}), retrying in ${delay / 1000}s`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
+      if (!upstream.ok) {
+        const text = await upstream.text();
+        console.error('[ai] upstream error', upstream.status, text);
+        return res.status(502).json({ error: `AI service returned ${upstream.status}` });
+      }
+
+      const data = await upstream.json();
+      const content = data?.choices?.[0]?.message?.content ?? '';
+      return res.json({ content });
+    } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') return res.status(504).json({ error: 'AI request timed out' });
+      console.error('[ai] error', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
     }
-
-    const data = await upstream.json();
-    const content = data?.choices?.[0]?.message?.content ?? '';
-    res.json({ content });
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') return res.status(504).json({ error: 'AI request timed out' });
-    console.error('[ai] error', err.message);
-    res.status(500).json({ error: 'Internal server error' });
   }
+
+  console.error('[ai] rate limited after all retries', lastText);
+  return res.status(429).json({ error: 'AI rate limit exceeded, please try again in a moment' });
 });
 
 // ─── Drive: folder helper ─────────────────────────────────────────────────────

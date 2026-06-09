@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { aiComplete, parseJsonSafe } from '../api.js';
 
 export default function AIStepPanel({ stepConfig, buildContext, outputType, onSave, savedData, onParsed, children }) {
@@ -8,6 +8,18 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [promptVisible, setPromptVisible] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (loading) {
+      setElapsed(0);
+      timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+    return () => clearInterval(timerRef.current);
+  }, [loading]);
 
   function getPrompt() {
     if (prompt) return prompt;
@@ -75,7 +87,7 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={generate}
           disabled={loading}
@@ -91,6 +103,11 @@ export default function AIStepPanel({ stepConfig, buildContext, outputType, onSa
             </>
           ) : rawOutput ? '🔄 สร้างใหม่' : '✨ สร้างด้วย AI'}
         </button>
+        {loading && (
+          <span className="text-sm font-mono text-indigo-500 tabular-nums">
+            {String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}
+          </span>
+        )}
       </div>
 
       {error && (
