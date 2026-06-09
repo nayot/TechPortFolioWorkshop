@@ -4,234 +4,312 @@ const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
 const rateLimit = require('express-rate-limit');
-const { OAuth2Client } = require('google-auth-library');
+const multer = require('multer');
 const path = require('path');
+const { google } = require('googleapis');
 
 const {
   OPENROUTER_API_KEY,
+  OPENROUTER_MODEL = 'qwen/qwen3-235b-a22b',
   GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  GOOGLE_REDIRECT_URI = 'http://localhost:3000/api/auth/google/callback',
   SESSION_SECRET,
   PORT = 3000,
-  ALLOWED_ORIGIN = 'http://localhost:3000',
-  NODE_ENV
+  ALLOWED_ORIGIN = 'http://localhost:5173',
+  NODE_ENV,
 } = process.env;
 
-if (!SESSION_SECRET) {
-  console.warn('[warn] SESSION_SECRET is not set — using an insecure default. Set it in .env before any real use.');
-}
-if (!GOOGLE_CLIENT_ID) {
-  console.warn('[warn] GOOGLE_CLIENT_ID is not set — Google sign-in will not work until you set it in .env.');
-}
-if (!OPENROUTER_API_KEY) {
-  console.warn('[warn] OPENROUTER_API_KEY is not set — /api/suggest will return an error until you set it in .env.');
-}
+if (!SESSION_SECRET) console.warn('[warn] SESSION_SECRET not set — using insecure default');
+if (!GOOGLE_CLIENT_ID) console.warn('[warn] GOOGLE_CLIENT_ID not set');
+if (!GOOGLE_CLIENT_SECRET) console.warn('[warn] GOOGLE_CLIENT_SECRET not set — OAuth will not work');
+if (!OPENROUTER_API_KEY) console.warn('[warn] OPENROUTER_API_KEY not set');
 
 const app = express();
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
-
 app.set('trust proxy', 1);
 
 app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
-app.use(express.json({ limit: '5mb' }));
-
+app.use(express.json({ limit: '10mb' }));
 app.use(session({
-  name: 'maejo.sid',
-  secret: SESSION_SECRET || 'insecure-dev-secret-change-me',
+  name: 'techport.sid',
+  secret: SESSION_SECRET || 'insecure-dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
     secure: NODE_ENV === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000
-  }
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  },
 }));
 
+// ─── Auth helpers ─────────────────────────────────────────────────────────────
+
+function makeOAuth2Client() {
+  return new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
+}
+
+function getDriveClient(req) {
+  const oauth2 = makeOAuth2Client();
+  oauth2.setCredentials(req.session.tokens);
+  return google.drive({ version: 'v3', auth: oauth2 });
+}
+
 function requireAuth(req, res, next) {
-  if (!req.session || !req.session.user) {
-    return res.status(401).json({ error: 'ต้องเข้าสู่ระบบก่อน' });
-  }
+  if (!req.session?.user) return res.status(401).json({ error: 'unauthenticated' });
   next();
 }
 
-app.get('/api/config', (req, res) => {
-  res.json({ googleClientId: GOOGLE_CLIENT_ID || '' });
+// ─── Health ───────────────────────────────────────────────────────────────────
+
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
+// ─── Auth routes ──────────────────────────────────────────────────────────────
+
+app.get('/api/auth/google', (_req, res) => {
+  const oauth2 = makeOAuth2Client();
+  const url = oauth2.generateAuthUrl({
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: [
+      'openid',
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/drive.file',
+    ],
+  });
+  res.redirect(url);
+});
+
+app.get('/api/auth/google/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code) return res.status(400).send('Missing code');
+  try {
+    const oauth2 = makeOAuth2Client();
+    const { tokens } = await oauth2.getToken(code);
+    oauth2.setCredentials(tokens);
+
+    const oauth2Api = google.oauth2({ version: 'v2', auth: oauth2 });
+    const { data: profile } = await oauth2Api.userinfo.get();
+
+    req.session.user = {
+      sub: profile.id,
+      email: profile.email,
+      name: profile.name,
+      picture: profile.picture,
+    };
+    req.session.tokens = tokens;
+
+    const frontendOrigin = ALLOWED_ORIGIN.replace(/\/$/, '');
+    res.redirect(`${frontendOrigin}/`);
+  } catch (err) {
+    console.error('[auth/callback]', err.message);
+    res.status(500).send('Authentication failed');
+  }
 });
 
 app.get('/api/auth/me', (req, res) => {
-  if (!req.session || !req.session.user) {
-    return res.status(401).json({ error: 'unauthenticated' });
-  }
+  if (!req.session?.user) return res.status(401).json({ error: 'unauthenticated' });
   res.json({ user: req.session.user });
 });
 
-app.post('/api/auth/google', async (req, res) => {
-  try {
-    const { credential } = req.body || {};
-    if (!credential) {
-      return res.status(400).json({ error: 'ไม่มีข้อมูลรับรองจาก Google' });
-    }
-    if (!GOOGLE_CLIENT_ID) {
-      return res.status(500).json({ error: 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า GOOGLE_CLIENT_ID' });
-    }
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-    if (!payload || !payload.sub) {
-      return res.status(401).json({ error: 'ไม่สามารถยืนยันตัวตนจาก Google ได้' });
-    }
-    req.session.user = {
-      sub: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      picture: payload.picture
-    };
-    res.json({ user: req.session.user });
-  } catch (err) {
-    console.error('[auth] verifyIdToken failed:', err.message);
-    res.status(401).json({ error: 'การยืนยันตัวตนล้มเหลว' });
-  }
-});
-
 app.post('/api/auth/logout', (req, res) => {
-  if (req.session) {
-    req.session.destroy(() => {
-      res.clearCookie('maejo.sid');
-      res.json({ ok: true });
-    });
-  } else {
-    res.json({ ok: true });
-  }
+  if (req.session) req.session.destroy(() => res.clearCookie('techport.sid').json({ ok: true }));
+  else res.json({ ok: true });
 });
 
-const suggestLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'มีการเรียกใช้ถี่เกินไป กรุณารอสักครู่' }
-});
+// ─── AI proxy ─────────────────────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = [
-  'คุณเป็นผู้เชี่ยวชาญด้านการพัฒนาพี่เลี้ยงนวัตกรรมของมหาวิทยาลัยแม่โจ้',
-  'โครงการ Deep Mentorship Program ปีงบประมาณ 2569',
-  'ช่วยคณาจารย์สร้าง Technology Portfolio',
-  'สำหรับเป็นพี่เลี้ยงนักศึกษาผู้ประกอบการด้านเกษตร อาหาร และสุขภาพ',
-  '[ตอบเป็นภาษาไทย หรือ English ตามที่ผู้ใช้เลือก]'
-].join('\n');
+const aiLimiter = rateLimit({ windowMs: 60_000, max: 30 });
 
-function buildInitialUserContent({ name, expertise, cvText, cvPdfBase64, language }) {
-  const langLine = language === 'en'
-    ? 'Please respond in English.'
-    : 'กรุณาตอบเป็นภาษาไทย';
+app.post('/api/ai/complete', requireAuth, aiLimiter, async (req, res) => {
+  if (!OPENROUTER_API_KEY) return res.status(500).json({ error: 'OPENROUTER_API_KEY not set' });
 
-  const lines = [
-    'สร้างส่วน Profile สำหรับ Technology Portfolio',
-    '',
-    `ชื่อ-ตำแหน่ง: ${name || '-'}`,
-    `ความเชี่ยวชาญ: ${expertise || '-'}`
-  ];
-  if (cvText && !cvPdfBase64) {
-    lines.push(`ข้อมูลจาก CV (ข้อความ):\n${cvText}`);
+  const { messages, model } = req.body || {};
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'messages array required' });
   }
-  lines.push('');
-  lines.push('จัดทำ:');
-  lines.push('1. สรุปประวัติวิชาชีพ (2-3 ประโยค)');
-  lines.push('2. ความเชี่ยวชาญหลัก (3-5 ข้อ อ้างอิงจาก CV ถ้ามี)');
-  lines.push('3. คำแถลงการวางตำแหน่งพี่เลี้ยง (1 ประโยค)');
-  lines.push('4. คีย์เวิร์ดโปรไฟล์ (5-7 คำ)');
-  lines.push('5. จุดแข็งจาก CV ที่ทำให้เป็นพี่เลี้ยงที่ดี');
-  lines.push('');
-  lines.push(langLine);
 
-  const textPart = { type: 'text', text: lines.join('\n') };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 90_000);
 
-  if (cvPdfBase64) {
-    return [
-      textPart,
-      {
-        type: 'file',
-        file: {
-          filename: 'cv.pdf',
-          file_data: `data:application/pdf;base64,${cvPdfBase64}`
-        }
-      }
-    ];
-  }
-  return [textPart];
-}
-
-app.post('/api/suggest', requireAuth, suggestLimiter, async (req, res) => {
   try {
-    if (!OPENROUTER_API_KEY) {
-      return res.status(500).json({ error: 'เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า OPENROUTER_API_KEY' });
-    }
-
-    const {
-      name = '',
-      expertise = '',
-      language = 'th',
-      cvText = '',
-      cvPdfBase64 = '',
-      followUp = '',
-      history = []
-    } = req.body || {};
-
-    const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
-
-    if (Array.isArray(history) && history.length > 0) {
-      for (const m of history) {
-        if (m && typeof m.role === 'string' && typeof m.content !== 'undefined') {
-          messages.push({ role: m.role, content: m.content });
-        }
-      }
-    } else {
-      messages.push({
-        role: 'user',
-        content: buildInitialUserContent({ name, expertise, cvText, cvPdfBase64, language })
-      });
-    }
-
-    if (followUp && followUp.trim()) {
-      messages.push({ role: 'user', content: followUp.trim() });
-    }
-
     const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': ALLOWED_ORIGIN,
-        'X-Title': 'Maejo Deep Mentorship'
+        'X-Title': 'Maejo Tech Portfolio',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages
-      })
+      body: JSON.stringify({ model: model || OPENROUTER_MODEL, messages }),
     });
+    clearTimeout(timeout);
 
     if (!upstream.ok) {
       const text = await upstream.text();
-      console.error('[openrouter] non-ok response', upstream.status, text);
-      return res.status(502).json({ error: `OpenRouter ตอบกลับด้วยรหัส ${upstream.status}` });
+      console.error('[ai] upstream error', upstream.status, text);
+      return res.status(502).json({ error: `AI service returned ${upstream.status}` });
     }
 
     const data = await upstream.json();
-    const result = data?.choices?.[0]?.message?.content ?? '';
-    if (!result) {
-      return res.status(502).json({ error: 'ไม่ได้รับเนื้อหาตอบกลับจาก AI' });
-    }
-    res.json({ result });
+    const content = data?.choices?.[0]?.message?.content ?? '';
+    res.json({ content });
   } catch (err) {
-    console.error('[suggest] error:', err);
-    res.status(500).json({ error: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' });
+    clearTimeout(timeout);
+    if (err.name === 'AbortError') return res.status(504).json({ error: 'AI request timed out' });
+    console.error('[ai] error', err.message);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-app.use(express.static(path.join(__dirname, 'public')));
+// ─── Drive: folder helper ─────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-  console.log(`Maejo portfolio server listening on http://localhost:${PORT}`);
+const FOLDER_NAME = 'Tech Port App';
+const FILE_EXT = '.techport.json';
+
+async function ensureFolder(drive, session) {
+  if (session.driveFolderId) return session.driveFolderId;
+
+  const q = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const list = await drive.files.list({ q, fields: 'files(id)', pageSize: 1 });
+  if (list.data.files.length > 0) {
+    session.driveFolderId = list.data.files[0].id;
+    return session.driveFolderId;
+  }
+
+  const folder = await drive.files.create({
+    requestBody: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
+    fields: 'id',
+  });
+  session.driveFolderId = folder.data.id;
+  return session.driveFolderId;
+}
+
+// ─── Projects CRUD ────────────────────────────────────────────────────────────
+
+app.get('/api/projects', requireAuth, async (req, res) => {
+  try {
+    const drive = getDriveClient(req);
+    const folderId = await ensureFolder(drive, req.session);
+    const q = `'${folderId}' in parents and name contains '${FILE_EXT}' and trashed=false`;
+    const list = await drive.files.list({ q, fields: 'files(id,name,modifiedTime)', orderBy: 'modifiedTime desc' });
+    res.json({ projects: list.data.files });
+  } catch (err) {
+    console.error('[projects/list]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
+
+app.post('/api/projects', requireAuth, async (req, res) => {
+  const { name } = req.body || {};
+  if (!name) return res.status(400).json({ error: 'name required' });
+  try {
+    const drive = getDriveClient(req);
+    const folderId = await ensureFolder(drive, req.session);
+    const fileName = `${name}${FILE_EXT}`;
+    const initialData = { name, createdAt: new Date().toISOString(), steps: {} };
+    const file = await drive.files.create({
+      requestBody: { name: fileName, parents: [folderId], mimeType: 'application/json' },
+      media: { mimeType: 'application/json', body: JSON.stringify(initialData) },
+      fields: 'id,name',
+    });
+    res.json({ id: file.data.id, name: file.data.name, data: initialData });
+  } catch (err) {
+    console.error('[projects/create]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/projects/:id', requireAuth, async (req, res) => {
+  try {
+    const drive = getDriveClient(req);
+    const content = await drive.files.get({ fileId: req.params.id, alt: 'media' });
+    res.json(content.data);
+  } catch (err) {
+    console.error('[projects/get]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/projects/:id', requireAuth, async (req, res) => {
+  try {
+    const drive = getDriveClient(req);
+    await drive.files.update({
+      fileId: req.params.id,
+      media: { mimeType: 'application/json', body: JSON.stringify(req.body) },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[projects/update]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Export to Google Docs ────────────────────────────────────────────────────
+
+app.post('/api/projects/:id/export-doc', requireAuth, async (req, res) => {
+  const { html, title } = req.body || {};
+  if (!html) return res.status(400).json({ error: 'html required' });
+  try {
+    const drive = getDriveClient(req);
+    const folderId = await ensureFolder(drive, req.session);
+    const file = await drive.files.create({
+      requestBody: {
+        name: title || 'Tech Portfolio',
+        parents: [folderId],
+        mimeType: 'application/vnd.google-apps.document',
+      },
+      media: { mimeType: 'text/html', body: html },
+      fields: 'id,webViewLink',
+    });
+    res.json({ link: file.data.webViewLink });
+  } catch (err) {
+    console.error('[export-doc]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── CV upload + parse ────────────────────────────────────────────────────────
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    const allowed = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
+
+app.post('/api/cv/upload', requireAuth, upload.single('cv'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file or unsupported type (PDF/DOCX only)' });
+  try {
+    let text = '';
+    if (req.file.mimetype === 'application/pdf') {
+      const pdfParse = require('pdf-parse');
+      const parsed = await pdfParse(req.file.buffer);
+      text = parsed.text;
+    } else {
+      const mammoth = require('mammoth');
+      const result = await mammoth.extractRawText({ buffer: req.file.buffer });
+      text = result.value;
+    }
+    res.json({ text: text.trim() });
+  } catch (err) {
+    console.error('[cv/upload]', err.message);
+    res.status(500).json({ error: 'Failed to parse file: ' + err.message });
+  }
+});
+
+// ─── Static (production Vite build) ──────────────────────────────────────────
+
+if (NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client', 'dist')));
+  app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html')));
+}
+
+app.listen(PORT, '0.0.0.0', () => console.log(`Tech Portfolio server → http://localhost:${PORT}`));

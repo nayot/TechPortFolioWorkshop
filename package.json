@@ -1,21 +1,33 @@
 {
   "name": "maejo-portfolio",
-  "version": "1.0.0",
-  "description": "Maejo Deep Mentorship — Technology Portfolio (Step 1 Profile demo)",
+  "version": "2.0.0",
+  "description": "Maejo Deep Mentorship — Technology Portfolio (7-step wizard)",
   "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev:server": "nodemon --delay 1 server.js",
+    "dev:client": "npm --prefix client run dev",
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "npm --prefix client run build"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "concurrently": "^9.1.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "express-session": "^1.18.0",
-    "google-auth-library": "^9.14.0"
+    "google-auth-library": "^9.14.0",
+    "googleapis": "^144.0.0",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }
