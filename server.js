@@ -3,6 +3,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const session = require('express-session');
+const FileStore = require('session-file-store')(session);
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
@@ -35,6 +36,7 @@ app.use(session({
   secret: SESSION_SECRET || 'insecure-dev-secret',
   resave: false,
   saveUninitialized: false,
+  store: new FileStore({ path: './sessions', ttl: 7 * 24 * 3600, retries: 0, logFn: () => {} }),
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
@@ -70,7 +72,7 @@ app.get('/api/auth/google', (_req, res) => {
   const oauth2 = makeOAuth2Client();
   const url = oauth2.generateAuthUrl({
     access_type: 'offline',
-    prompt: 'consent',
+    prompt: 'select_account',
     scope: [
       'openid',
       'email',
