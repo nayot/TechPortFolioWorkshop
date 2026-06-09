@@ -18,8 +18,14 @@ const {
   SESSION_SECRET,
   PORT = 3000,
   ALLOWED_ORIGIN = 'http://localhost:5173',
+  ALLOWED_EMAILS = '',
   NODE_ENV,
 } = process.env;
+
+// Comma-separated list of allowed emails; empty = allow all (open access)
+const allowedEmails = ALLOWED_EMAILS
+  ? new Set(ALLOWED_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean))
+  : null;
 
 if (!SESSION_SECRET) console.warn('[warn] SESSION_SECRET not set — using insecure default');
 if (!GOOGLE_CLIENT_ID) console.warn('[warn] GOOGLE_CLIENT_ID not set');
@@ -95,6 +101,13 @@ app.get('/api/auth/google/callback', async (req, res) => {
     const oauth2Api = google.oauth2({ version: 'v2', auth: oauth2 });
     const { data: profile } = await oauth2Api.userinfo.get();
 
+    const frontendOrigin = ALLOWED_ORIGIN.replace(/\/$/, '');
+
+    if (allowedEmails && !allowedEmails.has(profile.email.toLowerCase())) {
+      console.warn('[auth] blocked:', profile.email);
+      return res.redirect(`${frontendOrigin}/?error=unauthorized&email=${encodeURIComponent(profile.email)}`);
+    }
+
     req.session.user = {
       sub: profile.id,
       email: profile.email,
@@ -103,7 +116,6 @@ app.get('/api/auth/google/callback', async (req, res) => {
     };
     req.session.tokens = tokens;
 
-    const frontendOrigin = ALLOWED_ORIGIN.replace(/\/$/, '');
     res.redirect(`${frontendOrigin}/`);
   } catch (err) {
     console.error('[auth/callback]', err.message);

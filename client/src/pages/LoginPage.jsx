@@ -1,4 +1,8 @@
 export default function LoginPage() {
+  const params = new URLSearchParams(window.location.search);
+  const isUnauthorized = params.get('error') === 'unauthorized';
+  const blockedEmail = params.get('email') || '';
+
   function handleLogin() {
     window.location.href = '/api/auth/google';
   }
@@ -6,13 +10,22 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="bg-parchment rounded-2xl border-2 border-warm-border shadow-lg p-10 max-w-md w-full text-center">
-        {/* Gold accent line top */}
         <div className="w-16 h-1 bg-gold mx-auto rounded-full mb-6" />
 
         <h1 className="text-3xl font-bold text-navy mb-1 tracking-tight">Tech Portfolio</h1>
         <p className="text-sm text-gold font-medium mb-1">Deep Mentorship Program</p>
         <p className="text-sm text-warm-muted mb-1">มหาวิทยาลัยแม่โจ้ · ปีงบประมาณ 2569</p>
         <p className="text-xs text-warm-muted/70 mb-8">สร้าง Technology Portfolio ใน 8 ขั้นตอน พร้อม AI ช่วยร่าง</p>
+
+        {isUnauthorized && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-left">
+            <p className="text-sm font-semibold text-red-700 mb-1">ไม่มีสิทธิ์เข้าถึง</p>
+            <p className="text-xs text-red-600">
+              {blockedEmail && <><span className="font-mono">{blockedEmail}</span><br /></>}
+              อีเมลนี้ไม่อยู่ในรายชื่อผู้ได้รับอนุญาต กรุณาติดต่อผู้ดูแลระบบ
+            </p>
+          </div>
+        )}
 
         <button
           onClick={handleLogin}
@@ -24,7 +37,7 @@ export default function LoginPage() {
             <path fill="#ffffff" fillOpacity="0.6" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#ffffff" fillOpacity="0.45" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          เข้าสู่ระบบด้วย Google
+          {isUnauthorized ? 'ลองบัญชีอื่น' : 'เข้าสู่ระบบด้วย Google'}
         </button>
 
         <div className="w-16 h-px bg-warm-border mx-auto mt-8 mb-4" />
