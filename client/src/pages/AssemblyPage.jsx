@@ -137,6 +137,7 @@ function initDraft(project) {
     impactBrief: steps.impact?.parsed?.brief || '',
     reflection: steps.reflection?.finalText || '',
     gapsBrief: steps.commercialization?.parsed?.brief || '',
+    gaps: (steps.commercialization?.selections || []).map(g => ({ ...g })),
   };
 }
 
@@ -167,6 +168,13 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
     setDraft(prev => ({ ...prev, [key]: value }));
   }
 
+  function updateGap(index, field, value) {
+    setDraft(prev => {
+      const gaps = prev.gaps.map((g, i) => i === index ? { ...g, [field]: value } : g);
+      return { ...prev, gaps };
+    });
+  }
+
   async function exportToGoogleDocs() {
     setExporting(true);
     setExportError('');
@@ -189,9 +197,8 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   }
 
   function copyGaps() {
-    const gaps = steps.commercialization?.selections || [];
     const brief = draft.gapsBrief || '';
-    const text = `# วิเคราะห์ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)\n${brief ? brief + '\n\n' : ''}${gaps.map(g => `## ${g.gap}\n${g.description || ''}\n- โอกาส: ${g.opportunity || ''}\n- อุปสรรค: ${g.barrier || ''}\n- คำแนะนำ: ${g.recommendation || ''}`).join('\n\n')}`;
+    const text = `# วิเคราะห์ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)\n${brief ? brief + '\n\n' : ''}${draft.gaps.map(g => `## ${g.gap}\n${g.description || ''}\n- โอกาส: ${g.opportunity || ''}\n- อุปสรรค: ${g.barrier || ''}\n- คำแนะนำ: ${g.recommendation || ''}`).join('\n\n')}`;
     navigator.clipboard.writeText(text);
     setGapsCopied(true);
     setTimeout(() => setGapsCopied(false), 2000);
@@ -372,58 +379,132 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
         </div>
 
         {/* Diagnostic: Commercialization Gaps — not part of the portfolio export */}
-        {(() => {
-          const gaps = steps.commercialization?.selections || [];
-          const hasGaps = gaps.length > 0 || draft.gapsBrief;
-          if (!hasGaps) return null;
-          return (
-            <div className="max-w-2xl mx-auto px-4 pb-8">
-              <div className="border-2 border-amber-300/60 rounded-xl bg-amber-50/60 p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">วิเคราะห์เชิงพาณิชย์</span>
-                    <p className="text-xs text-amber-600/80 mt-0.5">ไม่รวมใน Portfolio — เฉพาะพี่เลี้ยงและทีมงาน</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={copyGaps}
-                      className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
-                    >
-                      {gapsCopied ? '✅ คัดลอกแล้ว' : '📋 คัดลอก'}
-                    </button>
-                    <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>
-                  </div>
+        {(draft.gaps.length > 0 || draft.gapsBrief) && (
+          <div className="max-w-2xl mx-auto px-4 pb-8">
+            <div className="border-2 border-amber-300/60 rounded-xl bg-amber-50/60 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">วิเคราะห์เชิงพาณิชย์</span>
+                  <p className="text-xs text-amber-600/80 mt-0.5">ไม่รวมใน Portfolio — เฉพาะพี่เลี้ยงและทีมงาน</p>
                 </div>
-                {editing.gaps ? (
-                  <EditableText value={draft.gapsBrief} onChange={v => updateDraft('gapsBrief', v)} rows={3} />
-                ) : (
-                  draft.gapsBrief && (
-                    <p className="text-sm text-amber-800 italic border-l-2 border-amber-300 pl-3 mb-3">{draft.gapsBrief}</p>
-                  )
-                )}
-                <button
-                  onClick={() => toggleEdit('gaps')}
-                  className="text-xs text-amber-600 hover:text-amber-800 mb-3"
-                >
-                  {editing.gaps ? '✓ เสร็จแล้ว' : '✏️ แก้ไขสรุป'}
-                </button>
-                <div className="space-y-3">
-                  {gaps.map((g, i) => (
-                    <div key={i} className="border border-amber-200 bg-white rounded-lg p-3">
-                      <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
-                      {g.description && <p className="text-xs text-gray-600 mt-1">{g.description}</p>}
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        {g.opportunity && <div className="bg-green-100 rounded p-2"><p className="text-xs font-medium text-green-700">โอกาส</p><p className="text-xs text-green-600 mt-0.5">{g.opportunity}</p></div>}
-                        {g.barrier && <div className="bg-red-100 rounded p-2"><p className="text-xs font-medium text-red-700">อุปสรรค</p><p className="text-xs text-red-600 mt-0.5">{g.barrier}</p></div>}
-                        {g.recommendation && <div className="bg-blue-100 rounded p-2"><p className="text-xs font-medium text-blue-700">คำแนะนำ</p><p className="text-xs text-blue-600 mt-0.5">{g.recommendation}</p></div>}
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={copyGaps}
+                    className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
+                  >
+                    {gapsCopied ? '✅ คัดลอกแล้ว' : '📋 คัดลอก'}
+                  </button>
+                  <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>
                 </div>
               </div>
+
+              {/* Editable brief */}
+              {editing.gaps ? (
+                <EditableText value={draft.gapsBrief} onChange={v => updateDraft('gapsBrief', v)} rows={3} />
+              ) : (
+                draft.gapsBrief && (
+                  <p className="text-sm text-amber-800 italic border-l-2 border-amber-300 pl-3 mb-3">{draft.gapsBrief}</p>
+                )
+              )}
+              <button
+                onClick={() => toggleEdit('gaps')}
+                className="text-xs text-amber-600 hover:text-amber-800 mb-3"
+              >
+                {editing.gaps ? '✓ เสร็จแล้ว' : '✏️ แก้ไขสรุป'}
+              </button>
+
+              {/* Gap cards with per-card editable fields */}
+              <div className="space-y-3">
+                {draft.gaps.map((g, i) => {
+                  const cardEditKey = `gap-${i}`;
+                  const isEditingCard = !!editing[cardEditKey];
+                  return (
+                    <div key={i} className="border border-amber-200 bg-white rounded-lg p-3">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        {isEditingCard ? (
+                          <input
+                            className="flex-1 text-sm font-semibold text-gray-900 border border-warm-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white"
+                            value={g.gap}
+                            onChange={e => updateGap(i, 'gap', e.target.value)}
+                          />
+                        ) : (
+                          <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
+                        )}
+                        <button
+                          onClick={() => toggleEdit(cardEditKey)}
+                          className={`shrink-0 text-xs px-2 py-0.5 rounded border transition-colors ${
+                            isEditingCard
+                              ? 'bg-amber-100 border-amber-400 text-amber-700'
+                              : 'border-warm-border text-warm-muted hover:text-amber-700 hover:border-amber-400'
+                          }`}
+                        >
+                          {isEditingCard ? '✓ เสร็จ' : '✏️'}
+                        </button>
+                      </div>
+
+                      {isEditingCard ? (
+                        <textarea
+                          className="w-full text-xs text-gray-600 border border-warm-border rounded px-2 py-1 resize-y focus:outline-none focus:ring-1 focus:ring-amber-400 bg-white mb-2"
+                          rows={2}
+                          value={g.description || ''}
+                          onChange={e => updateGap(i, 'description', e.target.value)}
+                          placeholder="คำอธิบาย..."
+                        />
+                      ) : (
+                        g.description && <p className="text-xs text-gray-600 mb-2">{g.description}</p>
+                      )}
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {/* โอกาส */}
+                        <div className="bg-green-100 rounded p-2">
+                          <p className="text-xs font-medium text-green-700 mb-1">โอกาส</p>
+                          {isEditingCard ? (
+                            <textarea
+                              className="w-full text-xs text-green-800 bg-white border border-green-300 rounded px-1.5 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-green-400"
+                              rows={3}
+                              value={g.opportunity || ''}
+                              onChange={e => updateGap(i, 'opportunity', e.target.value)}
+                            />
+                          ) : (
+                            <p className="text-xs text-green-600">{g.opportunity}</p>
+                          )}
+                        </div>
+                        {/* อุปสรรค */}
+                        <div className="bg-red-100 rounded p-2">
+                          <p className="text-xs font-medium text-red-700 mb-1">อุปสรรค</p>
+                          {isEditingCard ? (
+                            <textarea
+                              className="w-full text-xs text-red-800 bg-white border border-red-300 rounded px-1.5 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-red-400"
+                              rows={3}
+                              value={g.barrier || ''}
+                              onChange={e => updateGap(i, 'barrier', e.target.value)}
+                            />
+                          ) : (
+                            <p className="text-xs text-red-600">{g.barrier}</p>
+                          )}
+                        </div>
+                        {/* คำแนะนำ */}
+                        <div className="bg-blue-100 rounded p-2">
+                          <p className="text-xs font-medium text-blue-700 mb-1">คำแนะนำ</p>
+                          {isEditingCard ? (
+                            <textarea
+                              className="w-full text-xs text-blue-800 bg-white border border-blue-300 rounded px-1.5 py-1 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+                              rows={3}
+                              value={g.recommendation || ''}
+                              onChange={e => updateGap(i, 'recommendation', e.target.value)}
+                            />
+                          ) : (
+                            <p className="text-xs text-blue-600">{g.recommendation}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
       </div>
     </div>
   );
