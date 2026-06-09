@@ -13,6 +13,9 @@ export default function Step1Profile({ project, onSave }) {
   const [uploadError, setUploadError] = useState('');
   const [fields, setFields] = useState(saved.parsed?.fields || saved.fields || {});
   const [statement, setStatement] = useState(saved.finalText || saved.parsed?.statement || '');
+  const [brief, setBrief] = useState(saved.parsed?.brief || saved.fields?.brief || '');
+  const [expertise, setExpertise] = useState(saved.parsed?.expertise || saved.fields?.expertise || []);
+  const [newKeyword, setNewKeyword] = useState('');
   const [rewriting, setRewriting] = useState(false);
   const fileRef = useRef(null);
 
@@ -39,7 +42,7 @@ export default function Step1Profile({ project, onSave }) {
     setRewriting(true);
     try {
       const content = await aiComplete([
-        { role: 'user', content: `You are a portfolio editor. Polish and improve this researcher profile statement while keeping the same facts and tone. Return only the improved statement, no explanations:\n\n${statement}` }
+        { role: 'user', content: `คุณคือบรรณาธิการ Portfolio ปรับปรุงคำแถลงโปรไฟล์ของนักวิจัยนี้ให้ดีขึ้น โดยรักษาข้อเท็จจริงและน้ำเสียงเดิม ใช้ภาษาไทย ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน" ตอบเฉพาะคำแถลงที่ปรับปรุงแล้วเท่านั้น:\n\n${statement}` }
       ]);
       setStatement(content.trim());
     } catch (err) {
@@ -49,12 +52,22 @@ export default function Step1Profile({ project, onSave }) {
     }
   }
 
-  function handleAIOutput({ rawOutput, parsed, onSave: save }) {
+  function addKeyword() {
+    const kw = newKeyword.trim();
+    if (!kw || expertise.includes(kw)) return;
+    setExpertise(prev => [...prev, kw]);
+    setNewKeyword('');
+  }
+
+  function removeKeyword(kw) {
+    setExpertise(prev => prev.filter(k => k !== kw));
+  }
+
+  function handleAIOutput({ parsed, onSave: save }) {
+    const displayExpertise = expertise.length ? expertise : (parsed?.expertise || []);
+
     return (
       <div className="space-y-4">
-        {parsed?.brief && (
-          <p className="text-sm text-gray-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">{parsed.brief}</p>
-        )}
         {parsed && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -72,16 +85,56 @@ export default function Step1Profile({ project, onSave }) {
                 />
               </label>
             ))}
-            {parsed.expertise && (
+
+            {/* Brief — editable */}
+            {(brief || parsed?.brief) && (
               <div className="sm:col-span-2">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Expertise keywords</span>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {parsed.expertise.map(k => (
-                    <span key={k} className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">{k}</span>
-                  ))}
-                </div>
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">คำอธิบายโดยย่อ</span>
+                <textarea
+                  className="mt-1 w-full border border-gray-200 rounded-md px-3 py-1.5 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  rows={2}
+                  value={brief}
+                  onChange={e => setBrief(e.target.value)}
+                />
               </div>
             )}
+
+            {/* Expertise keywords — add/remove */}
+            <div className="sm:col-span-2">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Expertise Keywords</span>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                {displayExpertise.map(k => (
+                  <span key={k} className="flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                    {k}
+                    <button
+                      onClick={() => removeKeyword(k)}
+                      className="text-indigo-400 hover:text-red-500 ml-0.5 leading-none"
+                      title="ลบ keyword"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+                {displayExpertise.length === 0 && (
+                  <span className="text-xs text-gray-400 italic">ยังไม่มี keyword</span>
+                )}
+              </div>
+              <div className="flex gap-1.5 mt-2">
+                <input
+                  className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-300"
+                  placeholder="เพิ่ม keyword..."
+                  value={newKeyword}
+                  onChange={e => setNewKeyword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addKeyword()}
+                />
+                <button
+                  onClick={addKeyword}
+                  className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200"
+                >
+                  + เพิ่ม
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -109,7 +162,7 @@ export default function Step1Profile({ project, onSave }) {
           disabled={!statement}
           onClick={() => save({
             finalText: statement,
-            fields: { ...fields, ...(parsed || {}) },
+            fields: { ...fields, ...(parsed || {}), brief, expertise },
             cvText,
           })}
           className="w-full py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -155,7 +208,9 @@ export default function Step1Profile({ project, onSave }) {
         savedData={saved}
         onParsed={(p) => {
           if (p?.statement && !statement) setStatement(p.statement);
-          if (p) setFields(prev => ({ ...prev, ...p, brief: undefined }));
+          if (p?.brief && !brief) setBrief(p.brief);
+          if (p?.expertise?.length && !expertise.length) setExpertise(p.expertise);
+          if (p) setFields(prev => ({ ...prev, ...p, brief: undefined, expertise: undefined }));
         }}
       >
         {(props) => handleAIOutput(props)}

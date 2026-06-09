@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev:server": "nodemon --delay 1 server.js",
+    "dev:server": "nodemon --watch server.js --delay 1 server.js",
     "dev:client": "npm --prefix client run dev",
     "dev": "concurrently -n server,client -c cyan,magenta \"npm run dev:server\" \"npm run dev:client\"",
     "build": "npm --prefix client run build"

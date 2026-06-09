@@ -43,7 +43,7 @@ export default function Step7Reflection({ project, onSave }) {
         <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-sm font-medium text-gray-700">การสะท้อนคิดของฉัน</label>
+              <label className="text-sm font-medium text-gray-700">Reflection</label>
               <button
                 onClick={polish}
                 disabled={polishing || !text}

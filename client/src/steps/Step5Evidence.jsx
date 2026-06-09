@@ -10,7 +10,9 @@ export default function Step5Evidence({ project, onSave }) {
   const saved = project.steps?.evidence || {};
   const profile = project.steps?.profile?.fields || project.steps?.profile?.parsed || {};
   const [selected, setSelected] = useState(new Set((saved.selections || []).map(e => e.title)));
-  const [items, setItems] = useState(saved.parsed || []);
+  const [items, setItems] = useState(
+    Array.isArray(saved.parsed) ? saved.parsed : (saved.parsed?.items ?? [])
+  );
   const [extra, setExtra] = useState({ type: 'publication', title: '', year: '', description: '' });
   const [showAdd, setShowAdd] = useState(false);
 
@@ -37,7 +39,7 @@ export default function Step5Evidence({ project, onSave }) {
       outputType="selectable-cards"
       onSave={data => onSave({ ...data, selections: items.filter(e => selected.has(e.title)) })}
       savedData={saved}
-      onParsed={(p) => { if (p?.length) setItems(p); }}
+      onParsed={(p) => { const its = Array.isArray(p) ? p : (p?.items ?? []); if (its.length) setItems(its); }}
     >
       {({ parsed, onSave: save }) => {
         const parsedItems = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);

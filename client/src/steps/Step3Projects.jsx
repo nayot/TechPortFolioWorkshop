@@ -8,7 +8,9 @@ export default function Step3Projects({ project, onSave }) {
   const saved = project.steps?.projects || {};
   const profile = project.steps?.profile?.fields || project.steps?.profile?.parsed || {};
   const [selected, setSelected] = useState(new Set((saved.selections || []).map(p => p.title)));
-  const [projects, setProjects] = useState(saved.parsed || []);
+  const [projects, setProjects] = useState(
+    Array.isArray(saved.parsed) ? saved.parsed : (saved.parsed?.items ?? [])
+  );
   const [extra, setExtra] = useState({ title: '', period: '', description: '', impact: '' });
   const [showAdd, setShowAdd] = useState(false);
 
@@ -35,7 +37,7 @@ export default function Step3Projects({ project, onSave }) {
       outputType="selectable-cards"
       onSave={data => onSave({ ...data, selections: projects.filter(p => selected.has(p.title)) })}
       savedData={saved}
-      onParsed={(p) => { if (p?.length) setProjects(p); }}
+      onParsed={(p) => { const its = Array.isArray(p) ? p : (p?.items ?? []); if (its.length) setProjects(its); }}
     >
       {({ parsed, onSave: save }) => {
         const parsedItems = Array.isArray(parsed) ? parsed : (parsed?.items ?? []);
