@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { aiComplete } from '../api.js';
+import { aiComplete, parseJsonSafe } from '../api.js';
 import { STEPS } from '../prompts.js';
 import AIStepPanel from '../components/AIStepPanel.jsx';
 
@@ -20,11 +20,11 @@ export default function Step7Reflection({ project, onSave }) {
     if (!text) return;
     setPolishing(true);
     try {
-      const content = await aiComplete([{
-        role: 'user',
-        content: `คุณคือโค้ชการเขียน ปรับปรุง Reflection ของนักวิจัยคนนี้สำหรับ Portfolio การเป็นพี่เลี้ยง รักษาความหมายและเอกลักษณ์เดิม แต่ปรับปรุงความชัดเจน ความลื่นไหล และความลึก ใช้ภาษาไทยทั้งหมด ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน" ตอบเฉพาะข้อความที่ปรับปรุงแล้วเท่านั้น:\n\n${text}`
-      }]);
-      setText(content.trim());
+      const content = await aiComplete([
+        { role: 'user', content: stepConfig.buildRewritePrompt(text) }
+      ]);
+      const parsed = parseJsonSafe(content);
+      setText(parsed?.statement || content.trim());
     } catch (err) {
       console.error(err);
     } finally {

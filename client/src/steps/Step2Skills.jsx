@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { aiComplete } from '../api.js';
+import { aiComplete, parseJsonSafe } from '../api.js';
 import { STEPS } from '../prompts.js';
 import AIStepPanel from '../components/AIStepPanel.jsx';
 
@@ -24,11 +24,31 @@ export default function Step2Skills({ project, onSave }) {
     if (skillList.length === 0) return;
     setWritingStatement(true);
     try {
-      const content = await aiComplete([{
-        role: 'user',
-        content: `เขียนคำแถลงทักษะ/สมรรถนะ 3–4 ประโยค สำหรับ Tech Portfolio ของนักวิจัยมหาวิทยาลัย ใช้ภาษาไทยทั้งหมด ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน" คำแถลงควรรวมทักษะที่เลือกเข้าด้วยกันเป็นเรื่องราวที่สอดคล้องกัน:\n\nทักษะ: ${skillList.join(', ')}\nสาขาวิจัย: ${profile.domain || ''}\n\nตอบเฉพาะคำแถลงเท่านั้น ไม่มีคำอธิบายอื่น`
-      }]);
-      setStatement(content.trim());
+      const prompt = `[ROLE] บรรณาธิการ Tech Portfolio โครงการ Deep Mentorship Program มหาวิทยาลัยแม่โจ้
+[TASK] เขียนคำแถลงทักษะ/สมรรถนะ 3–4 ประโยค โดยรวมทักษะที่เลือกเข้าด้วยกันเป็นเรื่องราวที่สอดคล้องกัน
+[CONTEXT] สาขาวิจัย: ${profile.domain || ''}
+ทักษะที่เลือก: ${skillList.join(', ')}
+[FORMAT] JSON: { "statement": "..." } — ใช้ภาษาไทยทั้งหมด ใช้ "นักวิจัย" แทน "ผม/ดิฉัน"
+ตอบกลับเป็น JSON ที่ถูกต้องเท่านั้น ไม่ต้องมีคำอธิบาย ไม่ต้องมี markdown หรือ code fence`;
+      const content = await aiComplete([{ role: 'user', content: prompt }]);
+      const parsed = parseJsonSafe(content);
+      setStatement(parsed?.statement || content.trim());
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setWritingStatement(false);
+    }
+  }
+
+  async function polishStatement() {
+    if (!statement) return;
+    setWritingStatement(true);
+    try {
+      const content = await aiComplete([
+        { role: 'user', content: stepConfig.buildRewritePrompt(statement) }
+      ]);
+      const parsed = parseJsonSafe(content);
+      setStatement(parsed?.statement || content.trim());
     } catch (err) {
       console.error(err);
     } finally {
@@ -79,13 +99,24 @@ export default function Step2Skills({ project, onSave }) {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-sm font-medium text-gray-700">คำแถลงทักษะ</label>
-                  <button
-                    onClick={() => writeStatement(selectedArr)}
-                    disabled={writingStatement}
-                    className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-40"
-                  >
-                    {writingStatement ? '⏳ กำลังเขียน...' : '✨ ให้ AI เขียน'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => writeStatement(selectedArr)}
+                      disabled={writingStatement}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-40"
+                    >
+                      {writingStatement ? '⏳ กำลังเขียน...' : '✨ ให้ AI เขียน'}
+                    </button>
+                    {statement && (
+                      <button
+                        onClick={polishStatement}
+                        disabled={writingStatement}
+                        className="text-xs text-gold hover:text-gold/70 disabled:opacity-40"
+                      >
+                        ✨ ปรับปรุงด้วย AI
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <textarea
                   className="w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"

@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { api, aiComplete } from '../api.js';
+import { api, aiComplete, parseJsonSafe } from '../api.js';
 import { STEPS } from '../prompts.js';
 import AIStepPanel from '../components/AIStepPanel.jsx';
 
@@ -42,9 +42,10 @@ export default function Step1Profile({ project, onSave }) {
     setRewriting(true);
     try {
       const content = await aiComplete([
-        { role: 'user', content: `คุณคือบรรณาธิการ Portfolio ปรับปรุงคำแถลงโปรไฟล์ของนักวิจัยนี้ให้ดีขึ้น โดยรักษาข้อเท็จจริงและน้ำเสียงเดิม ใช้ภาษาไทย ใช้คำว่า "นักวิจัย" แทน "ผม/ดิฉัน" ตอบเฉพาะคำแถลงที่ปรับปรุงแล้วเท่านั้น:\n\n${statement}` }
+        { role: 'user', content: stepConfig.buildRewritePrompt(statement) }
       ]);
-      setStatement(content.trim());
+      const parsed = parseJsonSafe(content);
+      setStatement(parsed?.statement || content.trim());
     } catch (err) {
       console.error(err);
     } finally {

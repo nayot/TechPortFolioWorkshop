@@ -42,7 +42,6 @@ function buildHtml(draft, project) {
   const process = steps.process?.selections || [];
   const evidence = steps.evidence?.selections || [];
   const impact = steps.impact?.selections || [];
-  const gaps = steps.commercialization?.selections || [];
 
   return `<!DOCTYPE html>
 <html lang="th"><head><meta charset="UTF-8"><title>Tech Portfolio — ${prof.name || ''}</title>
@@ -52,10 +51,6 @@ h1{color:#1a1a2e}h2{color:#4338ca;border-bottom:2px solid #e0e7ff;padding-bottom
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .chip{background:#e0e7ff;color:#3730a3;padding:4px 12px;border-radius:20px;font-size:13px}
 .card{border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:12px}
-.gap-card{border:1px solid #fde68a;border-radius:8px;padding:16px;margin-bottom:12px;background:#fffbeb}
-.gap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px}
-.gap-col{padding:8px;border-radius:6px;font-size:12px}
-.opp{background:#dcfce7}.bar{background:#fee2e2}.rec{background:#dbeafe}
 .label{font-size:12px;color:#6b7280;text-transform:uppercase}
 .ref{font-size:11px;color:#9ca3af;font-style:italic;margin-top:4px}</style>
 </head><body>
@@ -89,10 +84,6 @@ ${draft.impactBrief ? `<p class="brief">${draft.impactBrief}</p>` : ''}
 
 <h2>7. Reflection</h2>
 <p style="white-space:pre-wrap">${draft.reflection}</p>
-
-<h2>8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)</h2>
-${draft.gapsBrief ? `<p class="brief">${draft.gapsBrief}</p>` : ''}
-${gaps.map(g => `<div class="gap-card"><strong>🔍 ${g.gap}</strong><p>${g.description || ''}</p><div class="gap-grid"><div class="gap-col opp"><strong>โอกาส:</strong> ${g.opportunity || ''}</div><div class="gap-col bar"><strong>อุปสรรค:</strong> ${g.barrier || ''}</div><div class="gap-col rec"><strong>คำแนะนำ:</strong> ${g.recommendation || ''}</div></div></div>`).join('')}
 </body></html>`;
 }
 
@@ -103,7 +94,6 @@ function buildMarkdownBrief(draft, project) {
   const projects = steps.projects?.selections || [];
   const process = steps.process?.selections || [];
   const impact = steps.impact?.selections || [];
-  const gaps = steps.commercialization?.selections || [];
 
   return `# Tech Portfolio Infographic Brief
 
@@ -128,9 +118,6 @@ ${impact.map(i => `- ${i}`).join('\n')}
 
 ## Reflection
 ${draft.reflection || 'N/A'}
-
-## ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)
-${gaps.map(g => `- **${g.gap}**: ${g.description || ''}\n  - โอกาส: ${g.opportunity || ''}\n  - คำแนะนำ: ${g.recommendation || ''}`).join('\n')}
 
 ---
 *วางข้อความนี้ใน ChatGPT หรือ Gemini พร้อมคำสั่ง: "สร้าง Infographic มืออาชีพสำหรับ Tech Portfolio ของนักวิจัยคนนี้ ใช้สไตล์วิชาการที่สะอาดตา พร้อมธีมสีของโครงการ Deep Mentorship Program มหาวิทยาลัยแม่โจ้"*`;
@@ -161,7 +148,6 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   const process = steps.process?.selections || [];
   const evidence = steps.evidence?.selections || [];
   const impact = steps.impact?.selections || [];
-  const gaps = steps.commercialization?.selections || [];
 
   const [draft, setDraft] = useState(() => initDraft(project));
   const [editing, setEditing] = useState({});
@@ -171,6 +157,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   const [exportError, setExportError] = useState('');
   const [briefCopied, setBriefCopied] = useState(false);
   const [showBrief, setShowBrief] = useState(false);
+  const [gapsCopied, setGapsCopied] = useState(false);
 
   function toggleEdit(key) {
     setEditing(prev => ({ ...prev, [key]: !prev[key] }));
@@ -199,6 +186,15 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
     navigator.clipboard.writeText(buildMarkdownBrief(draft, project));
     setBriefCopied(true);
     setTimeout(() => setBriefCopied(false), 2000);
+  }
+
+  function copyGaps() {
+    const gaps = steps.commercialization?.selections || [];
+    const brief = draft.gapsBrief || '';
+    const text = `# วิเคราะห์ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)\n${brief ? brief + '\n\n' : ''}${gaps.map(g => `## ${g.gap}\n${g.description || ''}\n- โอกาส: ${g.opportunity || ''}\n- อุปสรรค: ${g.barrier || ''}\n- คำแนะนำ: ${g.recommendation || ''}`).join('\n\n')}`;
+    navigator.clipboard.writeText(text);
+    setGapsCopied(true);
+    setTimeout(() => setGapsCopied(false), 2000);
   }
 
   return (
@@ -373,32 +369,61 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
             <button onClick={() => onEditStep('reflection')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-2 block">↩ แก้ไขใน Wizard</button>
           </Section>
 
-          {/* 8. Commercialization Gaps */}
-          <Section title="8. ช่องว่างเชิงพาณิชย์ (Commercialization Gaps)" onEdit={() => toggleEdit('gaps')} editing={editing.gaps}>
-            <div className="space-y-3">
-              {editing.gaps ? (
-                <>
-                  <label className="text-xs font-medium text-gray-500">สรุปภาพรวม</label>
-                  <EditableText value={draft.gapsBrief} onChange={v => updateDraft('gapsBrief', v)} rows={3} />
-                </>
-              ) : (
-                draft.gapsBrief && <p className="text-sm text-gray-500 italic border-l-2 border-amber-300 pl-3">{draft.gapsBrief}</p>
-              )}
-              {gaps.length > 0 ? gaps.map((g, i) => (
-                <div key={i} className="border border-amber-200 bg-amber-50 rounded-lg p-3">
-                  <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
-                  {g.description && <p className="text-xs text-gray-600 mt-1">{g.description}</p>}
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {g.opportunity && <div className="bg-green-100 rounded p-2"><p className="text-xs font-medium text-green-700">โอกาส</p><p className="text-xs text-green-600 mt-0.5">{g.opportunity}</p></div>}
-                    {g.barrier && <div className="bg-red-100 rounded p-2"><p className="text-xs font-medium text-red-700">อุปสรรค</p><p className="text-xs text-red-600 mt-0.5">{g.barrier}</p></div>}
-                    {g.recommendation && <div className="bg-blue-100 rounded p-2"><p className="text-xs font-medium text-blue-700">คำแนะนำ</p><p className="text-xs text-blue-600 mt-0.5">{g.recommendation}</p></div>}
+        </div>
+
+        {/* Diagnostic: Commercialization Gaps — not part of the portfolio export */}
+        {(() => {
+          const gaps = steps.commercialization?.selections || [];
+          const hasGaps = gaps.length > 0 || draft.gapsBrief;
+          if (!hasGaps) return null;
+          return (
+            <div className="max-w-2xl mx-auto px-4 pb-8">
+              <div className="border-2 border-amber-300/60 rounded-xl bg-amber-50/60 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <span className="text-xs font-bold text-amber-700 uppercase tracking-wider">วิเคราะห์เชิงพาณิชย์</span>
+                    <p className="text-xs text-amber-600/80 mt-0.5">ไม่รวมใน Portfolio — เฉพาะพี่เลี้ยงและทีมงาน</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={copyGaps}
+                      className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
+                    >
+                      {gapsCopied ? '✅ คัดลอกแล้ว' : '📋 คัดลอก'}
+                    </button>
+                    <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>
                   </div>
                 </div>
-              )) : <span className="text-gray-400 text-sm">ยังไม่ได้วิเคราะห์</span>}
-              <button onClick={() => onEditStep('commercialization')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+                {editing.gaps ? (
+                  <EditableText value={draft.gapsBrief} onChange={v => updateDraft('gapsBrief', v)} rows={3} />
+                ) : (
+                  draft.gapsBrief && (
+                    <p className="text-sm text-amber-800 italic border-l-2 border-amber-300 pl-3 mb-3">{draft.gapsBrief}</p>
+                  )
+                )}
+                <button
+                  onClick={() => toggleEdit('gaps')}
+                  className="text-xs text-amber-600 hover:text-amber-800 mb-3"
+                >
+                  {editing.gaps ? '✓ เสร็จแล้ว' : '✏️ แก้ไขสรุป'}
+                </button>
+                <div className="space-y-3">
+                  {gaps.map((g, i) => (
+                    <div key={i} className="border border-amber-200 bg-white rounded-lg p-3">
+                      <p className="text-sm font-semibold text-gray-900">🔍 {g.gap}</p>
+                      {g.description && <p className="text-xs text-gray-600 mt-1">{g.description}</p>}
+                      <div className="grid grid-cols-3 gap-2 mt-2">
+                        {g.opportunity && <div className="bg-green-100 rounded p-2"><p className="text-xs font-medium text-green-700">โอกาส</p><p className="text-xs text-green-600 mt-0.5">{g.opportunity}</p></div>}
+                        {g.barrier && <div className="bg-red-100 rounded p-2"><p className="text-xs font-medium text-red-700">อุปสรรค</p><p className="text-xs text-red-600 mt-0.5">{g.barrier}</p></div>}
+                        {g.recommendation && <div className="bg-blue-100 rounded p-2"><p className="text-xs font-medium text-blue-700">คำแนะนำ</p><p className="text-xs text-blue-600 mt-0.5">{g.recommendation}</p></div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </Section>
-        </div>
+          );
+        })()}
       </div>
     </div>
   );
