@@ -8,6 +8,8 @@ export default function ProjectListPage({ onOpen }) {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [deleting, setDeleting] = useState(null); // id of project being deleted
+  const [confirmDelete, setConfirmDelete] = useState(null); // project to confirm
 
   useEffect(() => {
     api.get('/api/projects')
@@ -25,6 +27,19 @@ export default function ProjectListPage({ onOpen }) {
     } catch (err) {
       setError(err.message);
       setCreating(false);
+    }
+  }
+
+  async function deleteProject(project) {
+    setDeleting(project.id);
+    setConfirmDelete(null);
+    try {
+      await api.delete(`/api/projects/${project.id}`);
+      setProjects(prev => prev.filter(p => p.id !== project.id));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(null);
     }
   }
 
@@ -56,17 +71,49 @@ export default function ProjectListPage({ onOpen }) {
       ) : (
         <div className="space-y-3">
           {projects.map(p => (
-            <div key={p.id} className="flex items-center justify-between border border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{p.name.replace('.techport.json', '')}</p>
-                <p className="text-xs text-gray-400">แก้ไขล่าสุด {formatDate(p.modifiedTime)}</p>
-              </div>
-              <button
-                onClick={() => openProject(p)}
-                className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                เปิด
-              </button>
+            <div key={p.id} className="border border-gray-200 rounded-xl p-4 hover:border-indigo-200 transition-colors">
+              {confirmDelete?.id === p.id ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-700">ต้องการลบ <strong>{p.name.replace('.techport.json', '')}</strong> ใช่ไหม? การดำเนินการนี้ไม่สามารถยกเลิกได้</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => deleteProject(p)}
+                      disabled={deleting === p.id}
+                      className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {deleting === p.id ? 'กำลังลบ...' : 'ยืนยันลบ'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="px-3 py-1.5 text-gray-500 text-sm hover:text-gray-700"
+                    >
+                      ยกเลิก
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{p.name.replace('.techport.json', '')}</p>
+                    <p className="text-xs text-gray-400">แก้ไขล่าสุด {formatDate(p.modifiedTime)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setConfirmDelete(p)}
+                      className="px-2 py-1.5 text-gray-400 text-sm rounded-lg hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title="ลบ Portfolio"
+                    >
+                      🗑
+                    </button>
+                    <button
+                      onClick={() => openProject(p)}
+                      className="px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
+                    >
+                      เปิด
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
 

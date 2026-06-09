@@ -247,6 +247,17 @@ app.put('/api/projects/:id', requireAuth, async (req, res) => {
   }
 });
 
+app.delete('/api/projects/:id', requireAuth, async (req, res) => {
+  try {
+    const drive = getDriveClient(req);
+    await drive.files.delete({ fileId: req.params.id });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[projects/delete]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Export to Google Docs ────────────────────────────────────────────────────
 
 app.post('/api/projects/:id/export-doc', requireAuth, async (req, res) => {
