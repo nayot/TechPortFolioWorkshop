@@ -96,14 +96,14 @@ export default function WizardPage({ projectMeta, initialData, onAssemble, onBac
 
           <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center">
             <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600">← รายการ Portfolio</button>
-            {completedSteps.length >= 3 && (
-              <button
-                onClick={() => onAssemble(project)}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                ดูภาพรวม Portfolio →
-              </button>
-            )}
+            <button
+              onClick={() => onAssemble(project)}
+              disabled={completedSteps.length < STEPS.length}
+              title={completedSteps.length < STEPS.length ? `ยังเหลืออีก ${STEPS.length - completedSteps.length} ขั้นตอน` : ''}
+              className="px-4 py-2 text-sm rounded-lg transition-colors disabled:cursor-not-allowed bg-gray-200 text-gray-400 enabled:bg-indigo-600 enabled:text-white enabled:hover:bg-indigo-700"
+            >
+              ดูภาพรวม Portfolio →
+            </button>
           </div>
         </div>
       </div>
