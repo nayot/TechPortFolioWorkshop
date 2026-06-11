@@ -83,12 +83,15 @@ export default function AdminPage({ onConfigChange }) {
   }
 
   async function handleAddEmail() {
-    const email = newEmail.trim().toLowerCase();
-    if (!email.includes('@')) { setAddEmailError('อีเมลไม่ถูกต้อง'); return; }
-    if (config.allowedEmails.includes(email)) { setAddEmailError('มีอีเมลนี้อยู่แล้ว'); return; }
+    const parsed = newEmail.split(/[,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean);
+    if (parsed.length === 0) { setAddEmailError('กรอกอีเมลอย่างน้อย 1 รายการ'); return; }
+    const invalid = parsed.filter(e => !e.includes('@'));
+    if (invalid.length > 0) { setAddEmailError(`อีเมลไม่ถูกต้อง: ${invalid.join(', ')}`); return; }
+    const toAdd = parsed.filter(e => !config.allowedEmails.includes(e));
+    if (toAdd.length === 0) { setAddEmailError('มีอีเมลเหล่านี้อยู่แล้ว'); return; }
     setAddEmailError('');
     try {
-      await updateConfig({ allowedEmails: [...config.allowedEmails, email] });
+      await updateConfig({ allowedEmails: [...config.allowedEmails, ...toAdd] });
       setNewEmail('');
     } catch (e) { setAddEmailError(e.message); }
   }
@@ -199,7 +202,7 @@ export default function AdminPage({ onConfigChange }) {
               value={newEmail}
               onChange={e => { setNewEmail(e.target.value); setAddEmailError(''); }}
               onKeyDown={e => e.key === 'Enter' && handleAddEmail()}
-              placeholder="กรอกอีเมล..."
+              placeholder="email@example.com, email2@example.com"
               className="flex-1 border border-warm-border rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:border-navy"
             />
             <button
