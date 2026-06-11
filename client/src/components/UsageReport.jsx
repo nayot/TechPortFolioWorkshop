@@ -54,30 +54,52 @@ function UsageTable({ rows, cols }) {
   );
 }
 
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function daysAgoStr(n) { return new Date(Date.now() - (n - 1) * 86_400_000).toISOString().slice(0, 10); }
+
 export default function UsageReport() {
-  const [days, setDays] = useState(30);
+  const [from, setFrom] = useState(() => daysAgoStr(30));
+  const [to,   setTo]   = useState(() => todayStr());
+  const [activeDays, setActiveDays] = useState(30);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  function fetchData(fromDate, toDate) {
     setLoading(true);
     setError('');
-    const to   = new Date().toISOString().slice(0, 10);
-    const from = new Date(Date.now() - (days - 1) * 86_400_000).toISOString().slice(0, 10);
-    api.get(`/api/admin/usage?from=${from}&to=${to}`)
+    api.get(`/api/admin/usage?from=${fromDate}&to=${toDate}`)
       .then(setData)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
-  }, [days]);
+  }
 
-  const interval = days === 7 ? 0 : days === 30 ? 4 : 8;
+  useEffect(() => { fetchData(from, to); }, []); // initial load
+
+  function handlePreset(days) {
+    const f = daysAgoStr(days);
+    const t = todayStr();
+    setFrom(f);
+    setTo(t);
+    setActiveDays(days);
+    fetchData(f, t);
+  }
+
+  function handleCustomFetch() {
+    if (!from || !to || from > to) { setError('กรุณาเลือกช่วงวันที่ให้ถูกต้อง'); return; }
+    setActiveDays(null);
+    fetchData(from, to);
+  }
+
+  const dayCount = data ? data.daily.length : 0;
+  const interval = dayCount <= 7 ? 0 : dayCount <= 30 ? 4 : 8;
 
   const chartData = data?.daily.map(d => ({
     date:  fmtDate(d.date),
     calls: d.calls,
     cost:  parseFloat(d.costUsd.toFixed(6)),
   })) ?? [];
+
 
   const userCols = [
     { key: 'email',        label: 'ผู้ใช้',         mono: true },
@@ -97,13 +119,13 @@ export default function UsageReport() {
   return (
     <div className="space-y-4">
       {/* Period selector */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {PERIODS.map(p => (
           <button
             key={p.days}
-            onClick={() => setDays(p.days)}
+            onClick={() => handlePreset(p.days)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
-              days === p.days
+              activeDays === p.days
                 ? 'bg-navy text-white border-navy'
                 : 'border-warm-border text-warm-muted hover:border-navy hover:text-navy'
             }`}
@@ -111,7 +133,30 @@ export default function UsageReport() {
             {p.label}
           </button>
         ))}
-        {loading && <span className="text-xs text-warm-muted self-center ml-2">กำลังโหลด...</span>}
+        <span className="text-warm-border">|</span>
+        <input
+          type="date"
+          value={from}
+          max={to}
+          onChange={e => { setFrom(e.target.value); setActiveDays(null); }}
+          className="border border-warm-border rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:border-navy"
+        />
+        <span className="text-xs text-warm-muted">ถึง</span>
+        <input
+          type="date"
+          value={to}
+          min={from}
+          max={todayStr()}
+          onChange={e => { setTo(e.target.value); setActiveDays(null); }}
+          className="border border-warm-border rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:border-navy"
+        />
+        <button
+          onClick={handleCustomFetch}
+          disabled={loading}
+          className="px-4 py-1.5 bg-navy text-white text-sm rounded-lg hover:bg-navy/90 disabled:opacity-50"
+        >
+          {loading ? '...' : 'ดึงข้อมูล'}
+        </button>
       </div>
 
       {error && <div className="text-red-600 text-sm">{error}</div>}
