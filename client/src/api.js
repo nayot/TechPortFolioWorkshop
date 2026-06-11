@@ -1,5 +1,7 @@
+export const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 async function request(path, options = {}) {
-  const res = await fetch(path, { credentials: 'include', ...options });
+  const res = await fetch(API_BASE + path, { credentials: 'include', ...options });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(body.error || `HTTP ${res.status}`);

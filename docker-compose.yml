@@ -1,8 +1,11 @@
 services:
   app:
-    build: .
-    image: maejo-portfolio:latest
-    container_name: maejo-portfolio
+    build:
+      context: .
+      args:
+        VITE_BASE: /techportfolio/
+    image: techportfolio:latest
+    container_name: techportfolio
     restart: unless-stopped
     env_file:
       - .env
@@ -11,5 +14,7 @@ services:
       PORT: 3000
     ports:
       # Bind only to the host loopback so the container is reachable
-      # exclusively via your host's reverse proxy (nginx/Caddy/Traefik).
+      # exclusively via your host's reverse proxy (nginx).
       - "127.0.0.1:3010:3000"
+    volumes:
+      - ./sessions:/app/sessions

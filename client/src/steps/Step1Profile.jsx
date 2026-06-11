@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { api, aiComplete, parseJsonSafe } from '../api.js';
+import { api, aiComplete, parseJsonSafe, API_BASE } from '../api.js';
 import { STEPS } from '../prompts.js';
 import AIStepPanel from '../components/AIStepPanel.jsx';
 
@@ -25,7 +25,7 @@ export default function Step1Profile({ project, onSave }) {
     const fd = new FormData();
     fd.append('cv', file);
     try {
-      const res = await fetch('/api/cv/upload', { method: 'POST', credentials: 'include', body: fd });
+      const res = await fetch(`${API_BASE}/api/cv/upload`, { method: 'POST', credentials: 'include', body: fd });
       if (!res.ok) throw new Error((await res.json()).error);
       const { text } = await res.json();
       setCvText(text);

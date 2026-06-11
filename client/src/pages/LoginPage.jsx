@@ -1,10 +1,12 @@
+import { API_BASE } from '../api.js';
+
 export default function LoginPage() {
   const params = new URLSearchParams(window.location.search);
   const isUnauthorized = params.get('error') === 'unauthorized';
   const blockedEmail = params.get('email') || '';
 
   function handleLogin() {
-    window.location.href = '/api/auth/google';
+    window.location.href = `${API_BASE}/api/auth/google`;
   }
 
   return (
