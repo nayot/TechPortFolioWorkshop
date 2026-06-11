@@ -1,0 +1,89 @@
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{thai}
+\setotherlanguage{english}
+\setmainfont{TH Sarabun New}[Scale=1.3333]
+\newfontfamily\englishfont{TH Sarabun New}[Scale=1.3333]
+\XeTeXlinebreaklocale "th"
+\XeTeXlinebreakskip=0pt plus 1pt
+
+\usepackage[a4paper,top=27mm,bottom=25mm,inner=27mm,outer=22mm,headheight=25pt]{geometry}
+\usepackage{setspace}
+\setstretch{1.2}
+\usepackage[protrusion=false]{microtype}
+\usepackage{ragged2e}
+\emergencystretch=2em
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=1.5em}
+\setlist[itemize]{label=\textcolor{MaejoGold}{\small\textbullet}}
+\usepackage{booktabs,longtable,array,tabularx}
+\usepackage{amssymb}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{Y}{>{\RaggedRight\arraybackslash}X}
+\newcolumntype{P}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+
+\usepackage[table]{xcolor}
+\definecolor{MaejoGreen}{HTML}{006633}
+\definecolor{MaejoGold}{HTML}{D3A925}
+\definecolor{DeepGreen}{HTML}{102D52}
+\definecolor{BlueprintNavy}{HTML}{102D52}
+\definecolor{BlueprintLine}{HTML}{C8D2D5}
+\definecolor{BlueprintPaper}{HTML}{FAF9F3}
+\definecolor{WarmGray}{HTML}{F1EFE6}
+\definecolor{SoftGreen}{HTML}{EEF3EE}
+\definecolor{SoftGold}{HTML}{F7F0D8}
+\definecolor{Ink}{HTML}{17243A}
+\color{Ink}
+\pagecolor{BlueprintPaper}
+
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\usepackage[most]{tcolorbox}
+\tcbset{enhanced,breakable,boxrule=.8pt,arc=0mm,left=3mm,right=3mm,top=2mm,bottom=2mm,
+  before skip=8pt,after skip=8pt,fonttitle=\bfseries}
+\newtcolorbox{keytakeaway}[1][]{colback=SoftGreen,colframe=BlueprintNavy,title={สาระสำคัญ | Key Takeaway},#1}
+\newtcolorbox{mentornote}[1][]{colback=SoftGold,colframe=MaejoGold,title={บันทึกสำหรับ Mentor | Mentor Note},#1}
+\newtcolorbox{reflection}[1][]{colback=BlueprintPaper,colframe=BlueprintNavy,title={แบบฝึกสะท้อนคิด | Reflection Exercise},borderline west={2.5pt}{0pt}{MaejoGold},#1}
+\newtcolorbox{promptbox}[1][]{colback=WarmGray,colframe=BlueprintNavy,title={Prompt พร้อมใช้},fontupper=\small,#1}
+\newtcolorbox{examplebox}[1][]{colback=BlueprintPaper,colframe=MaejoGold,title={กรณีตัวอย่าง | Example},#1}
+
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\color{BlueprintNavy}\bfseries}
+  {\color{MaejoGold}\fontsize{18}{20}\selectfont บทที่ \thechapter}
+  {3pt}{\fontsize{26}{30}\selectfont}
+\titlespacing*{\chapter}{0pt}{-8pt}{18pt}
+\titleformat{\section}{\Large\bfseries\color{BlueprintNavy}}{\thesection}{.7em}{}
+\titleformat{\subsection}{\large\bfseries\color{BlueprintNavy}}{\thesubsection}{.7em}{}
+\titleformat{\part}[display]
+  {\centering\bfseries\color{BlueprintNavy}}
+  {\tikz[baseline=-.6ex]\node[circle,fill=MaejoGold,text=BlueprintNavy,inner sep=5pt]{\fontsize{18}{22}\selectfont\bfseries \thepart};}
+  {12pt}{\fontsize{32}{38}\selectfont}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\color{BlueprintNavy}DEEP MENTOR TRAINING HANDBOOK}
+\fancyhead[RO]{\small\color{BlueprintNavy}MAEJO MENTOR POOL}
+\fancyfoot[C]{\color{MaejoGold}\thepage}
+\renewcommand{\headrulewidth}{.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{MaejoGold}\leaders\hrule height \headrulewidth\hfill}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\color{MaejoGold}\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=BlueprintNavy,urlcolor=BlueprintNavy,pdftitle={Deep Mentor Training Workshop Handbook},pdfauthor={ผู้ช่วยศาสตราจารย์ ดร. ณยศ คุรุกิจโกศล; รองศาสตราจารย์ ดร. จิตติมา เจริญพานิช},pdfsubject={Deep Mentorship Program for Maejo Mentor Pool}}
+\usepackage{bookmark}
+\usepackage{csquotes}
+
+\newcommand{\learningobjectives}[1]{%
+  \begin{tcolorbox}[colback=WarmGray,colframe=BlueprintNavy,title={เป้าหมายการเรียนรู้ | Learning Objectives}]
+  เมื่อจบบทนี้ ท่านจะสามารถ:
+  \begin{itemize}#1\end{itemize}
+  \end{tcolorbox}}
+\newcommand{\chaptersummary}[1]{%
+  \section*{สรุปบท | Chapter Summary}
+  \addcontentsline{toc}{section}{สรุปบท}
+  #1}
+\newcommand{\diagnostic}[1]{\textcolor{BlueprintNavy}{\textbf{คำถามวินิจฉัย:}} \enquote{#1}}
+\newcommand{\blankline}{\par\noindent\textcolor{MaejoGold}{\rule{\linewidth}{.4pt}}\par}

@@ -1,0 +1,50 @@
+\begin{titlepage}
+\thispagestyle{empty}
+\color{BlueprintNavy}
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[BlueprintPaper] (current page.south west) rectangle (current page.north east);
+  \draw[BlueprintLine!50,line width=.25pt,step=10mm]
+    ([xshift=12mm,yshift=12mm]current page.south west) grid
+    ([xshift=-12mm,yshift=-12mm]current page.north east);
+  \draw[BlueprintNavy,line width=.7pt]
+    ([xshift=16mm,yshift=-16mm]current page.north west) -- ([xshift=-16mm,yshift=-16mm]current page.north east);
+  \foreach \x in {20,30,...,190}
+    \draw[BlueprintNavy!55,line width=.35pt] ([xshift=\x mm,yshift=-16mm]current page.north west) -- ++(0,-2.5mm);
+  \draw[MaejoGold,line width=2pt]
+    ([xshift=20mm,yshift=20mm]current page.south west) -- ([xshift=-20mm,yshift=20mm]current page.south east);
+  % Abstract mentoring path and forward arrow
+  \draw[BlueprintNavy,line width=1.2pt,rounded corners=3mm]
+    ([xshift=32mm,yshift=-76mm]current page.north west)
+    -- ++(25mm,0) -- ++(12mm,-12mm) -- ++(24mm,0) -- ++(12mm,12mm) -- ++(33mm,0);
+  \draw[MaejoGold,line width=2.2pt,-{Stealth[length=7mm,width=5mm]}]
+    ([xshift=36mm,yshift=-92mm]current page.north west) -- ++(105mm,0);
+  \draw[BlueprintNavy,dashed,line width=.7pt]
+    ([xshift=40mm,yshift=-62mm]current page.north west) -- ++(22mm,0) -- ++(8mm,8mm);
+  \draw[MaejoGold,dashed,line width=.7pt]
+    ([xshift=120mm,yshift=-62mm]current page.north west) -- ++(20mm,0) -- ++(8mm,-8mm);
+  \foreach \p in {([xshift=40mm,yshift=-62mm]current page.north west),
+                  ([xshift=148mm,yshift=-70mm]current page.north west)}
+    \draw[BlueprintNavy,fill=BlueprintPaper,line width=.7pt] \p circle (1.6mm);
+\end{tikzpicture}
+
+\vspace*{18mm}
+{\fontsize{15}{18}\selectfont\bfseries DEEP MENTORSHIP PROGRAM FOR MAEJO MENTOR POOL\par}
+\vspace{77mm}
+{\color{MaejoGold}\fontsize{17}{20}\selectfont HANDBOOK\par}
+\vspace{3mm}
+{\fontsize{38}{43}\selectfont\bfseries Deep Mentor\\Training Workshop\par}
+\vspace{5mm}
+{\fontsize{22}{27}\selectfont\bfseries คู่มือการพัฒนา Mentor มืออาชีพ\par}
+{\fontsize{17}{21}\selectfont เพื่อขับเคลื่อนนักวิจัยและระบบนิเวศนวัตกรรม\par}
+\vspace{11mm}
+{\color{MaejoGold}\rule{65mm}{1.2pt}\par}
+\vfill
+\begin{minipage}{118mm}
+\raggedright
+\fontsize{16}{20}\selectfont
+\textbf{ผู้ช่วยศาสตราจารย์ ดร. ณยศ คุรุกิจโกศล}\\
+\textbf{รองศาสตราจารย์ ดร. จิตติมา เจริญพานิช}
+\end{minipage}\par
+\vspace{7mm}
+{\large Maejo University\par}
+\end{titlepage}

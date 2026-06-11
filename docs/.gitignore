@@ -1,0 +1,23 @@
+# XeLaTeX auxiliary files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.xdv
+
+# Editor and operating-system files
+*~
+*.swp
+*.swo
+.DS_Store
