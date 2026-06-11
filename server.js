@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { randomUUID } = require('crypto');
 const { google } = require('googleapis');
 
 const {
@@ -65,6 +66,38 @@ function saveAdminConfig(cfg) {
 
 let adminConfig = loadAdminConfig();
 
+// ─── Local project storage helpers ───────────────────────────────────────────
+
+function safeSub(sub) {
+  if (!sub || !/^\d+$/.test(String(sub))) throw new Error('invalid user id');
+  return String(sub);
+}
+
+function safeProjectId(id) {
+  if (!id || !/^[0-9a-f-]{8,40}$/.test(id)) throw new Error('invalid project id');
+  return id;
+}
+
+function userProjectsDir(sub) {
+  return path.join(__dirname, 'data', 'projects', safeSub(sub));
+}
+
+function projectFilePath(sub, id) {
+  return path.join(userProjectsDir(sub), safeProjectId(id) + '.json');
+}
+
+function ensureUserDir(sub) {
+  const dir = userProjectsDir(sub);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function writeProjectFile(filePath, data) {
+  const tmp = filePath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+  fs.renameSync(tmp, filePath);
+}
+
 // ─── Express setup ────────────────────────────────────────────────────────────
 
 const app = express();
@@ -90,12 +123,6 @@ app.use(session({
 
 function makeOAuth2Client() {
   return new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
-}
-
-function getDriveClient(req) {
-  const oauth2 = makeOAuth2Client();
-  oauth2.setCredentials(req.session.tokens);
-  return google.drive({ version: 'v3', auth: oauth2 });
 }
 
 function requireAuth(req, res, next) {
@@ -130,12 +157,7 @@ app.get('/api/auth/google', (_req, res) => {
   const url = oauth2.generateAuthUrl({
     access_type: 'offline',
     prompt: 'select_account',
-    scope: [
-      'openid',
-      'email',
-      'profile',
-      'https://www.googleapis.com/auth/drive.file',
-    ],
+    scope: ['openid', 'email', 'profile'],
   });
   res.redirect(url);
 });
@@ -166,7 +188,6 @@ app.get('/api/auth/google/callback', async (req, res) => {
       name: profile.name,
       picture: profile.picture,
     };
-    req.session.tokens = tokens;
 
     req.session.save((err) => {
       if (err) {
@@ -230,7 +251,7 @@ app.post('/api/ai/complete', requireAppEnabled, requireAuth, aiLimiter, async (r
   }
 
   const MAX_ATTEMPTS = 3;
-  let lastStatus, lastText;
+  let lastText;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
@@ -251,7 +272,6 @@ app.post('/api/ai/complete', requireAppEnabled, requireAuth, aiLimiter, async (r
       clearTimeout(timeout);
 
       if (upstream.status === 429) {
-        lastStatus = 429;
         lastText = await upstream.text();
         const retryAfter = parseInt(upstream.headers.get('retry-after') || '5', 10);
         const delay = Math.min(retryAfter, 15) * 1000;
@@ -281,121 +301,82 @@ app.post('/api/ai/complete', requireAppEnabled, requireAuth, aiLimiter, async (r
   return res.status(429).json({ error: 'AI rate limit exceeded, please try again in a moment' });
 });
 
-// ─── Drive: folder helper ─────────────────────────────────────────────────────
+// ─── Projects CRUD (local file storage) ──────────────────────────────────────
 
-const FOLDER_NAME = 'Tech Port App';
-const FILE_EXT = '.techport.json';
-
-async function ensureFolder(drive, session) {
-  if (session.driveFolderId) return session.driveFolderId;
-
-  const q = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-  const list = await drive.files.list({ q, fields: 'files(id)', pageSize: 1 });
-  if (list.data.files.length > 0) {
-    session.driveFolderId = list.data.files[0].id;
-    return session.driveFolderId;
-  }
-
-  const folder = await drive.files.create({
-    requestBody: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' },
-    fields: 'id',
-  });
-  session.driveFolderId = folder.data.id;
-  return session.driveFolderId;
-}
-
-// ─── Projects CRUD ────────────────────────────────────────────────────────────
-
-app.get('/api/projects', requireAppEnabled, requireAuth, async (req, res) => {
+app.get('/api/projects', requireAppEnabled, requireAuth, (req, res) => {
   try {
-    const drive = getDriveClient(req);
-    const folderId = await ensureFolder(drive, req.session);
-    const q = `'${folderId}' in parents and name contains '${FILE_EXT}' and trashed=false`;
-    const list = await drive.files.list({ q, fields: 'files(id,name,modifiedTime)', orderBy: 'modifiedTime desc' });
-    res.json({ projects: list.data.files });
+    const dir = userProjectsDir(req.session.user.sub);
+    if (!fs.existsSync(dir)) return res.json({ projects: [] });
+
+    const projects = fs.readdirSync(dir)
+      .filter(f => f.endsWith('.json'))
+      .map(f => {
+        try {
+          const data = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+          const stat = fs.statSync(path.join(dir, f));
+          return { id: data.id, name: data.name, modifiedTime: stat.mtime.toISOString() };
+        } catch { return null; }
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime));
+
+    res.json({ projects });
   } catch (err) {
     console.error('[projects/list]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/projects', requireAppEnabled, requireAuth, async (req, res) => {
+app.post('/api/projects', requireAppEnabled, requireAuth, (req, res) => {
   const { name } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name required' });
   try {
-    const drive = getDriveClient(req);
-    const folderId = await ensureFolder(drive, req.session);
-    const fileName = `${name}${FILE_EXT}`;
-    const initialData = { name, createdAt: new Date().toISOString(), steps: {} };
-    const file = await drive.files.create({
-      requestBody: { name: fileName, parents: [folderId], mimeType: 'application/json' },
-      media: { mimeType: 'application/json', body: JSON.stringify(initialData) },
-      fields: 'id,name',
-    });
-    res.json({ id: file.data.id, name: file.data.name, data: initialData });
+    const sub = req.session.user.sub;
+    ensureUserDir(sub);
+    const id = randomUUID();
+    const fileName = `${name}.techport.json`;
+    const data = { id, name: fileName, createdAt: new Date().toISOString(), steps: {} };
+    writeProjectFile(projectFilePath(sub, id), data);
+    res.json({ id, name: fileName, data });
   } catch (err) {
     console.error('[projects/create]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/projects/:id', requireAppEnabled, requireAuth, async (req, res) => {
+app.get('/api/projects/:id', requireAppEnabled, requireAuth, (req, res) => {
   try {
-    const drive = getDriveClient(req);
-    const content = await drive.files.get({ fileId: req.params.id, alt: 'media' });
-    res.json(content.data);
+    const filePath = projectFilePath(req.session.user.sub, req.params.id);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+    res.json(JSON.parse(fs.readFileSync(filePath, 'utf8')));
   } catch (err) {
     console.error('[projects/get]', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(err.message.includes('invalid') ? 400 : 500).json({ error: err.message });
   }
 });
 
-app.put('/api/projects/:id', requireAppEnabled, requireAuth, async (req, res) => {
+app.put('/api/projects/:id', requireAppEnabled, requireAuth, (req, res) => {
   try {
-    const drive = getDriveClient(req);
-    await drive.files.update({
-      fileId: req.params.id,
-      media: { mimeType: 'application/json', body: JSON.stringify(req.body) },
-    });
+    const filePath = projectFilePath(req.session.user.sub, req.params.id);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+    const data = { ...req.body, id: req.params.id, updatedAt: new Date().toISOString() };
+    writeProjectFile(filePath, data);
     res.json({ ok: true });
   } catch (err) {
     console.error('[projects/update]', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(err.message.includes('invalid') ? 400 : 500).json({ error: err.message });
   }
 });
 
-app.delete('/api/projects/:id', requireAppEnabled, requireAuth, async (req, res) => {
+app.delete('/api/projects/:id', requireAppEnabled, requireAuth, (req, res) => {
   try {
-    const drive = getDriveClient(req);
-    await drive.files.delete({ fileId: req.params.id });
+    const filePath = projectFilePath(req.session.user.sub, req.params.id);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+    fs.unlinkSync(filePath);
     res.json({ ok: true });
   } catch (err) {
     console.error('[projects/delete]', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ─── Export to Google Docs ────────────────────────────────────────────────────
-
-app.post('/api/projects/:id/export-doc', requireAppEnabled, requireAuth, async (req, res) => {
-  const { html, title } = req.body || {};
-  if (!html) return res.status(400).json({ error: 'html required' });
-  try {
-    const drive = getDriveClient(req);
-    const folderId = await ensureFolder(drive, req.session);
-    const file = await drive.files.create({
-      requestBody: {
-        name: title || 'Tech Portfolio',
-        parents: [folderId],
-        mimeType: 'application/vnd.google-apps.document',
-      },
-      media: { mimeType: 'text/html', body: html },
-      fields: 'id,webViewLink',
-    });
-    res.json({ link: file.data.webViewLink });
-  } catch (err) {
-    console.error('[export-doc]', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(err.message.includes('invalid') ? 400 : 500).json({ error: err.message });
   }
 });
 

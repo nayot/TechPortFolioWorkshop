@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, aiComplete, parseJsonSafe } from '../api.js';
+import { downloadPdf } from '../utils/pdf.js';
 import { buildOverviewPrompt, buildFullDraftPrompt, buildSingleFieldPrompt } from '../prompts/mentoringPlanPrompts.js';
 import OverviewPanel from '../components/mentoringPlan/OverviewPanel.jsx';
 import SessionPanel from '../components/mentoringPlan/SessionPanel.jsx';
@@ -71,8 +72,6 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
   const [fieldLoading, setFieldLoading] = useState({});
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
-  const [exporting, setExporting] = useState(false);
-  const [exportLink, setExportLink] = useState('');
   const debounceRef = useRef(null);
   const planRef = useRef(plan);
   planRef.current = plan;
@@ -182,19 +181,9 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
     }
   }
 
-  async function handleExport() {
-    setExporting(true);
-    setExportLink('');
-    try {
-      const html = buildMentoringPlanHtml(plan, menteeProfile);
-      const title = `แผน Mentoring — ${menteeProfile.name || projectMeta.name.replace('.techport.json', '')}`;
-      const data = await api.post(`/api/projects/${projectMeta.id}/export-doc`, { html, title });
-      setExportLink(data.link);
-    } catch (err) {
-      showToast(`Export ไม่สำเร็จ: ${err.message}`);
-    } finally {
-      setExporting(false);
-    }
+  function handlePdf() {
+    const title = `แผน Mentoring — ${menteeProfile.name || projectMeta.name.replace('.techport.json', '')}`;
+    downloadPdf(buildMentoringPlanHtml(plan, menteeProfile), title);
   }
 
   const filled = plan.sessions.reduce((n, s) =>
@@ -293,22 +282,12 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
               ✨ สร้าง Draft ทั้งหมด
             </button>
             <button
-              onClick={handleExport}
-              disabled={exporting}
-              className="flex items-center gap-2 px-4 py-2 bg-parchment hover:bg-gold-light text-navy rounded-lg border-2 border-warm-border font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              onClick={handlePdf}
+              className="flex items-center gap-2 px-4 py-2 bg-parchment hover:bg-gold-light text-navy rounded-lg border-2 border-warm-border font-semibold text-sm transition-colors"
             >
-              {exporting ? '⏳' : '📄'} Export to Google Docs
+              📄 ดาวน์โหลด PDF
             </button>
           </div>
-
-          {exportLink && (
-            <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm">
-              Export สำเร็จ!{' '}
-              <a href={exportLink} target="_blank" rel="noopener noreferrer" className="text-navy underline font-medium">
-                เปิด Google Docs →
-              </a>
-            </div>
-          )}
         </div>
       </div>
     </div>

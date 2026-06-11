@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../api.js';
+import { downloadPdf, buildGapsHtml } from '../utils/pdf.js';
 
 function EditableText({ value, onChange, rows = 4, placeholder = '' }) {
   return (
@@ -155,9 +155,6 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
   const [draft, setDraft] = useState(() => initDraft(project));
   const [editing, setEditing] = useState({});
 
-  const [exporting, setExporting] = useState(false);
-  const [exportLink, setExportLink] = useState('');
-  const [exportError, setExportError] = useState('');
   const [briefCopied, setBriefCopied] = useState(false);
   const [showBrief, setShowBrief] = useState(false);
   const [gapsCopied, setGapsCopied] = useState(false);
@@ -177,19 +174,14 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
     });
   }
 
-  async function exportToGoogleDocs() {
-    setExporting(true);
-    setExportError('');
-    try {
-      const html = buildHtml(draft, project);
-      const title = `Tech Portfolio — ${profile.name || projectMeta.name}`;
-      const data = await api.post(`/api/projects/${projectMeta.id}/export-doc`, { html, title });
-      setExportLink(data.link);
-    } catch (err) {
-      setExportError(err.message);
-    } finally {
-      setExporting(false);
-    }
+  function handlePortfolioPdf() {
+    const title = `Tech Portfolio — ${profile.name || projectMeta.name.replace('.techport.json', '')}`;
+    downloadPdf(buildHtml(draft, project), title);
+  }
+
+  function handleGapsPdf() {
+    const title = `Commercialization Gaps — ${profile.name || projectMeta.name.replace('.techport.json', '')}`;
+    downloadPdf(buildGapsHtml(draft, project), title);
   }
 
   function copyBrief() {
@@ -219,26 +211,16 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
             📊 Infographic Brief
           </button>
           <button
-            onClick={exportToGoogleDocs}
-            disabled={exporting}
-            className="px-3 py-1.5 bg-gold hover:bg-gold/90 text-navy text-sm rounded-lg font-semibold disabled:opacity-50 transition-colors"
+            onClick={handlePortfolioPdf}
+            className="px-3 py-1.5 bg-gold hover:bg-gold/90 text-navy text-sm rounded-lg font-semibold transition-colors"
           >
-            {exporting ? 'กำลัง export...' : '📄 Export to Google Docs'}
+            📄 ดาวน์โหลด PDF
           </button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 py-6">
-          {exportLink && (
-            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 mb-6 text-sm text-green-700 flex items-center gap-2">
-              ✅ สร้าง Google Doc แล้ว —{' '}
-              <a href={exportLink} target="_blank" rel="noopener noreferrer" className="underline font-medium">เปิด Doc</a>
-            </div>
-          )}
-          {exportError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm text-red-700">{exportError}</div>
-          )}
 
           {showBrief && (
             <div className="bg-parchment border-2 border-gold/40 rounded-xl p-4 mb-6">
@@ -395,6 +377,12 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                     className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
                   >
                     {gapsCopied ? '✅ คัดลอกแล้ว' : '📋 คัดลอก'}
+                  </button>
+                  <button
+                    onClick={handleGapsPdf}
+                    className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
+                  >
+                    📄 PDF
                   </button>
                   <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>
                 </div>
