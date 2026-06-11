@@ -113,6 +113,7 @@ export default function App() {
             project={currentProject.data}
             projectMeta={{ id: currentProject.id, name: currentProject.name }}
             onProjectUpdate={handleProjectUpdate}
+            onBack={() => setPage('projects')}
           />
         )}
       </main>

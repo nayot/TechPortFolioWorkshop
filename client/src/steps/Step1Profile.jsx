@@ -69,10 +69,9 @@ export default function Step1Profile({ project, onSave }) {
 
     return (
       <div className="space-y-4">
-        {parsed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
-              ['name', 'ชื่อ-ตำแหน่ง'],
+              ['name', 'ชื่อ-นามสกุล'],
               ['position', 'ตำแหน่ง'],
               ['institution', 'สถาบัน'],
               ['domain', 'สาขาวิจัย'],
@@ -81,14 +80,14 @@ export default function Step1Profile({ project, onSave }) {
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
                 <input
                   className="mt-1 w-full border border-warm-border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white"
-                  value={fields[key] || parsed[key] || ''}
+                  value={fields[key] ?? parsed?.[key] ?? ''}
                   onChange={e => setFields(prev => ({ ...prev, [key]: e.target.value }))}
                 />
               </label>
             ))}
 
             {/* Brief — editable */}
-            {(brief || parsed?.brief) && (
+            {(brief || parsed?.brief) ? (
               <div className="sm:col-span-2">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">คำอธิบายโดยย่อ</span>
                 <textarea
@@ -98,7 +97,7 @@ export default function Step1Profile({ project, onSave }) {
                   onChange={e => setBrief(e.target.value)}
                 />
               </div>
-            )}
+            ) : null}
 
             {/* Expertise keywords — add/remove */}
             <div className="sm:col-span-2">
@@ -137,7 +136,6 @@ export default function Step1Profile({ project, onSave }) {
               </div>
             </div>
           </div>
-        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">คำแถลงโปรไฟล์</label>
@@ -163,7 +161,7 @@ export default function Step1Profile({ project, onSave }) {
           disabled={!statement}
           onClick={() => save({
             finalText: statement,
-            fields: { ...fields, ...(parsed || {}), brief, expertise },
+            fields: { ...(parsed || {}), ...fields, brief, expertise },
             cvText,
           })}
           className="w-full py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"

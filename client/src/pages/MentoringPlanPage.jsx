@@ -64,7 +64,7 @@ ${overallNote ? `<h2>หมายเหตุรวม</h2><p style="white-space
 </body></html>`;
 }
 
-export default function MentoringPlanPage({ project, projectMeta, onProjectUpdate }) {
+export default function MentoringPlanPage({ project, projectMeta, onProjectUpdate, onBack }) {
   const [plan, setPlan] = useState(() => initPlan(project.mentoringPlan));
   const [activeSession, setActiveSession] = useState(0);
   const [generating, setGenerating] = useState(false);
@@ -226,6 +226,9 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
         <div className="max-w-2xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <div>
+              <button onClick={onBack} className="text-sm text-warm-muted hover:text-navy transition-colors mb-1 block">
+                ← รายการ Portfolio
+              </button>
               <h2 className="text-lg font-bold text-navy">📋 แผน Mentoring</h2>
               {menteeProfile.name && (
                 <p className="text-xs text-warm-muted mt-0.5">Mentee: {menteeProfile.name}</p>
