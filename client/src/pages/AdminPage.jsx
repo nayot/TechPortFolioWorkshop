@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api.js';
+import UsageReport from '../components/UsageReport.jsx';
 
 const MODEL_OPTIONS = [
   { value: 'openai/gpt-4.1-mini',               label: 'GPT-4.1 Mini',        hint: '★ แนะนำ — เร็ว ราคาถูก ภาษาไทยดี' },
@@ -33,6 +34,9 @@ export default function AdminPage({ onConfigChange }) {
 
   // app toggle
   const [togglingApp, setTogglingApp] = useState(false);
+
+  // tabs
+  const [adminTab, setAdminTab] = useState('settings');
 
   // restart
   const [restartConfirm, setRestartConfirm] = useState(false);
@@ -139,14 +143,34 @@ export default function AdminPage({ onConfigChange }) {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-xl mx-auto space-y-4">
-        <h2 className="text-lg font-bold text-navy mb-1">ผู้ดูแลระบบ</h2>
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-xl mx-auto px-6 pt-6">
+        <h2 className="text-lg font-bold text-navy mb-3">ผู้ดูแลระบบ</h2>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{error}</div>
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-warm-border mb-4">
+          {[{ id: 'settings', label: 'ตั้งค่า' }, { id: 'usage', label: 'รายงานการใช้งาน' }].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setAdminTab(t.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                adminTab === t.id
+                  ? 'border-navy text-navy'
+                  : 'border-transparent text-warm-muted hover:text-navy'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {error && adminTab === 'settings' && (
+          <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm mb-4">{error}</div>
         )}
 
+        {adminTab === 'usage' && <UsageReport />}
+
+        {adminTab === 'settings' && <>
         {/* ── 1. App Status ───────────────────────────────────────────────────── */}
         <div className="bg-parchment border border-warm-border rounded-xl p-6">
           <h3 className="text-sm font-bold text-navy mb-3">สถานะระบบ</h3>
@@ -302,6 +326,7 @@ export default function AdminPage({ onConfigChange }) {
             </div>
           )}
         </div>
+        </>}
 
       </div>
     </div>

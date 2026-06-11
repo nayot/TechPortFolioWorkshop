@@ -66,6 +66,42 @@ function saveAdminConfig(cfg) {
 
 let adminConfig = loadAdminConfig();
 
+// ─── Usage logging ────────────────────────────────────────────────────────────
+
+const USAGE_LOG_PATH = path.join(__dirname, 'data', 'usage.jsonl');
+
+// Fallback pricing per 1M tokens (USD) for models that don't return cost directly.
+// Source: OpenRouter pricing (June 2026). Use data.usage.cost from response when available.
+const MODEL_PRICING = {
+  'openai/gpt-4.1-mini':               { in: 0.40,  out: 1.60  },
+  'openai/gpt-4.1':                    { in: 2.00,  out: 8.00  },
+  'anthropic/claude-sonnet-4-5':       { in: 3.00,  out: 15.00 },
+  'google/gemini-2.5-flash':           { in: 0.15,  out: 0.60  },
+  'qwen/qwen3-235b-a22b':              { in: 0.14,  out: 0.60  },
+  'qwen/qwen3-30b-a3b':                { in: 0.10,  out: 0.30  },
+  'meta-llama/llama-3.3-70b-instruct': { in: 0.12,  out: 0.40  },
+};
+
+function estimateCost(model, inputTokens, outputTokens) {
+  const p = MODEL_PRICING[model] || MODEL_PRICING[model?.split(':')[0]];
+  if (!p) return null;
+  return (inputTokens / 1_000_000) * p.in + (outputTokens / 1_000_000) * p.out;
+}
+
+function appendUsageLog(entry) {
+  try {
+    fs.mkdirSync(path.dirname(USAGE_LOG_PATH), { recursive: true });
+    fs.appendFileSync(USAGE_LOG_PATH, JSON.stringify(entry) + '\n', 'utf8');
+  } catch (err) {
+    console.error('[usage-log]', err.message);
+  }
+}
+
+// Shift UTC timestamp to Thai date (UTC+7) for day-bucketing
+function toThaiDate(isoStr) {
+  return new Date(new Date(isoStr).getTime() + 7 * 3600_000).toISOString().slice(0, 10);
+}
+
 // ─── Local project storage helpers ───────────────────────────────────────────
 
 function safeSub(sub) {
@@ -267,7 +303,7 @@ app.post('/api/ai/complete', requireAppEnabled, requireAuth, aiLimiter, async (r
           'HTTP-Referer': ALLOWED_ORIGIN,
           'X-Title': 'Maejo Tech Portfolio',
         },
-        body: JSON.stringify({ model: model || adminConfig.model, messages }),
+        body: JSON.stringify({ model: model || adminConfig.model, messages, usage: { include: true } }),
       });
       clearTimeout(timeout);
 
@@ -288,6 +324,24 @@ app.post('/api/ai/complete', requireAppEnabled, requireAuth, aiLimiter, async (r
 
       const data = await upstream.json();
       const content = data?.choices?.[0]?.message?.content ?? '';
+
+      // Log usage — prefer OpenRouter's reported cost; fall back to pricing table
+      const usage = data?.usage || {};
+      const inputTokens = usage.prompt_tokens || 0;
+      const outputTokens = usage.completion_tokens || 0;
+      const usedModel = data?.model || model || adminConfig.model;
+      const directCost = typeof usage.cost === 'number' ? usage.cost : null;
+      const costUsd = directCost ?? estimateCost(usedModel, inputTokens, outputTokens) ?? 0;
+      appendUsageLog({
+        ts: new Date().toISOString(),
+        email: req.session.user?.email || 'unknown',
+        model: usedModel,
+        inputTokens,
+        outputTokens,
+        costUsd,
+        costSource: directCost !== null ? 'openrouter' : 'estimate',
+      });
+
       return res.json({ content });
     } catch (err) {
       clearTimeout(timeout);
@@ -412,6 +466,71 @@ app.post('/api/cv/upload', requireAppEnabled, requireAuth, upload.single('cv'), 
     console.error('[cv/upload]', err.message);
     res.status(500).json({ error: 'Failed to parse file: ' + err.message });
   }
+});
+
+// ─── Usage report ────────────────────────────────────────────────────────────
+
+app.get('/api/admin/usage', requireAdmin, async (req, res) => {
+  const toDate  = req.query.to   ? new Date(req.query.to   + 'T23:59:59Z') : new Date();
+  const fromDate = req.query.from ? new Date(req.query.from + 'T00:00:00Z')
+                                  : new Date(Date.now() - 29 * 86_400_000);
+
+  const entries = [];
+  try {
+    const readline = require('readline');
+    const rl = readline.createInterface({ input: fs.createReadStream(USAGE_LOG_PATH), crlfDelay: Infinity });
+    for await (const line of rl) {
+      if (!line.trim()) continue;
+      try {
+        const e = JSON.parse(line);
+        const ts = new Date(e.ts);
+        if (ts >= fromDate && ts <= toDate) entries.push(e);
+      } catch { /* skip malformed */ }
+    }
+  } catch (err) {
+    if (err.code !== 'ENOENT') console.error('[usage]', err.message);
+  }
+
+  const daily = {}, byUser = {}, byModel = {};
+  for (const e of entries) {
+    const day = toThaiDate(e.ts);
+    const add = (map, key, init) => {
+      if (!map[key]) map[key] = { ...init, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+      map[key].calls++;
+      map[key].inputTokens += e.inputTokens || 0;
+      map[key].outputTokens += e.outputTokens || 0;
+      map[key].costUsd += e.costUsd || 0;
+    };
+    add(daily,   day,     { date: day });
+    add(byUser,  e.email, { email: e.email });
+    add(byModel, e.model, { model: e.model });
+  }
+
+  // Fill every day in range (Thai-day aligned)
+  const allDays = [];
+  const cursor = new Date(fromDate.getTime() + 7 * 3600_000);
+  cursor.setUTCHours(0, 0, 0, 0);
+  const endDay = toThaiDate(toDate.toISOString());
+  while (cursor.toISOString().slice(0, 10) <= endDay) {
+    const d = cursor.toISOString().slice(0, 10);
+    allDays.push(daily[d] || { date: d, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+
+  const summary = entries.reduce((s, e) => ({
+    totalCalls: s.totalCalls + 1,
+    totalInputTokens: s.totalInputTokens + (e.inputTokens || 0),
+    totalOutputTokens: s.totalOutputTokens + (e.outputTokens || 0),
+    totalCostUsd: s.totalCostUsd + (e.costUsd || 0),
+  }), { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostUsd: 0 });
+
+  res.json({
+    period: { from: fromDate.toISOString().slice(0, 10), to: toDate.toISOString().slice(0, 10) },
+    summary,
+    daily: allDays,
+    byUser: Object.values(byUser).sort((a, b) => b.costUsd - a.costUsd),
+    byModel: Object.values(byModel).sort((a, b) => b.costUsd - a.costUsd),
+  });
 });
 
 // ─── DOCX export ─────────────────────────────────────────────────────────────
