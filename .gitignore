@@ -2,6 +2,7 @@ node_modules/
 client/node_modules/
 client/dist/
 sessions/
+data/
 .env
 npm-debug.log*
 .DS_Store
