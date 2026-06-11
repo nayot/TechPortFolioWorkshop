@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api, aiComplete, parseJsonSafe } from '../api.js';
-import { downloadPdf } from '../utils/pdf.js';
+import { downloadPdf, downloadDocx } from '../utils/pdf.js';
 import { buildOverviewPrompt, buildFullDraftPrompt, buildSingleFieldPrompt } from '../prompts/mentoringPlanPrompts.js';
 import OverviewPanel from '../components/mentoringPlan/OverviewPanel.jsx';
 import SessionPanel from '../components/mentoringPlan/SessionPanel.jsx';
@@ -186,6 +186,11 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
     downloadPdf(buildMentoringPlanHtml(plan, menteeProfile), title);
   }
 
+  function handleDocx() {
+    const title = `แผน Mentoring — ${menteeProfile.name || projectMeta.name.replace('.techport.json', '')}`;
+    downloadDocx(buildMentoringPlanHtml(plan, menteeProfile), title);
+  }
+
   const filled = plan.sessions.reduce((n, s) =>
     n + (s.sessionGoal ? 1 : 0) + (s.diagnosticQuestions?.length > 0 ? 1 : 0) +
         (s.gapsToClose ? 1 : 0) + (s.successMarkers ? 1 : 0), 0);
@@ -285,7 +290,13 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
               onClick={handlePdf}
               className="flex items-center gap-2 px-4 py-2 bg-parchment hover:bg-gold-light text-navy rounded-lg border-2 border-warm-border font-semibold text-sm transition-colors"
             >
-              📄 ดาวน์โหลด PDF
+              📄 PDF
+            </button>
+            <button
+              onClick={handleDocx}
+              className="flex items-center gap-2 px-4 py-2 bg-parchment hover:bg-gold-light text-navy rounded-lg border-2 border-warm-border font-semibold text-sm transition-colors"
+            >
+              📝 DOCX
             </button>
           </div>
         </div>

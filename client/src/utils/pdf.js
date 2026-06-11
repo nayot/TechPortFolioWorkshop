@@ -1,3 +1,5 @@
+import { API_BASE } from '../api.js';
+
 const PRINT_STYLE = `
   @media print {
     @page { margin: 15mm; size: A4 portrait; }
@@ -16,6 +18,32 @@ export function downloadPdf(html, title) {
   win.document.close();
   win.document.title = title || 'document';
   setTimeout(() => { win.focus(); win.print(); }, 500);
+}
+
+export async function downloadDocx(html, filename) {
+  try {
+    const res = await fetch(API_BASE + '/api/export/docx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ html, filename }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename || 'document'}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(`ดาวน์โหลด DOCX ไม่สำเร็จ: ${err.message}`);
+  }
 }
 
 export function buildGapsHtml(draft, project) {

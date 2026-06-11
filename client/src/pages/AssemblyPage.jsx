@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { downloadPdf, buildGapsHtml } from '../utils/pdf.js';
+import { downloadPdf, downloadDocx, buildGapsHtml } from '../utils/pdf.js';
 
 function EditableText({ value, onChange, rows = 4, placeholder = '' }) {
   return (
@@ -184,6 +184,16 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
     downloadPdf(buildGapsHtml(draft, project), title);
   }
 
+  function handlePortfolioDocx() {
+    const title = `Tech Portfolio — ${profile.name || projectMeta.name.replace('.techport.json', '')}`;
+    downloadDocx(buildHtml(draft, project), title);
+  }
+
+  function handleGapsDocx() {
+    const title = `Commercialization Gaps — ${profile.name || projectMeta.name.replace('.techport.json', '')}`;
+    downloadDocx(buildGapsHtml(draft, project), title);
+  }
+
   function copyBrief() {
     navigator.clipboard.writeText(buildMarkdownBrief(draft, project));
     setBriefCopied(true);
@@ -214,7 +224,13 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
             onClick={handlePortfolioPdf}
             className="px-3 py-1.5 bg-gold hover:bg-gold/90 text-navy text-sm rounded-lg font-semibold transition-colors"
           >
-            📄 ดาวน์โหลด PDF
+            📄 PDF
+          </button>
+          <button
+            onClick={handlePortfolioDocx}
+            className="px-3 py-1.5 border border-gold/60 text-gold-light hover:bg-white/10 text-sm rounded-lg font-semibold transition-colors"
+          >
+            📝 DOCX
           </button>
         </div>
       </div>
@@ -383,6 +399,12 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                     className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
                   >
                     📄 PDF
+                  </button>
+                  <button
+                    onClick={handleGapsDocx}
+                    className="text-xs border border-amber-400/60 text-amber-700 hover:bg-amber-100 px-2 py-1 rounded transition-colors"
+                  >
+                    📝 DOCX
                   </button>
                   <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>
                 </div>

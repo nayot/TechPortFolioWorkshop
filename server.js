@@ -414,6 +414,29 @@ app.post('/api/cv/upload', requireAppEnabled, requireAuth, upload.single('cv'), 
   }
 });
 
+// ─── DOCX export ─────────────────────────────────────────────────────────────
+
+app.post('/api/export/docx', requireAppEnabled, requireAuth, async (req, res) => {
+  const { html, filename } = req.body || {};
+  if (!html) return res.status(400).json({ error: 'html required' });
+  try {
+    const HTMLtoDOCX = require('html-to-docx');
+    const buffer = await HTMLtoDOCX(html, null, {
+      title: filename || 'document',
+      lang: 'th-TH',
+      font: 'Cordia New',
+      fontSize: 24,
+    });
+    const safeName = (filename || 'document').replace(/[/\\?%*:|"<>]/g, '-');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(safeName + '.docx')}`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('[export/docx]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Static (production Vite build) ──────────────────────────────────────────
 
 if (NODE_ENV === 'production') {
