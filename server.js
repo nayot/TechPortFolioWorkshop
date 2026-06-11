@@ -42,7 +42,7 @@ app.use(session({
   secret: SESSION_SECRET || 'insecure-dev-secret',
   resave: false,
   saveUninitialized: false,
-  store: new FileStore({ path: './sessions', ttl: 7 * 24 * 3600, retries: 0, logFn: () => {} }),
+  store: new FileStore({ path: './sessions', ttl: 7 * 24 * 3600, retries: 0 }),
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
@@ -116,7 +116,13 @@ app.get('/api/auth/google/callback', async (req, res) => {
     };
     req.session.tokens = tokens;
 
-    res.redirect(`${frontendOrigin}/`);
+    req.session.save((err) => {
+      if (err) {
+        console.error('[auth/callback] session save error:', err);
+        return res.status(500).send('Authentication succeeded, but the session could not be saved');
+      }
+      res.redirect(`${frontendOrigin}/`);
+    });
   } catch (err) {
     console.error('[auth/callback]', err.message);
     res.status(500).send('Authentication failed');
