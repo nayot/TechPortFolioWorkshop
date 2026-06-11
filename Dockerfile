@@ -24,7 +24,7 @@ COPY server.js ./
 COPY public ./public
 COPY --from=client-builder /build/dist ./client/dist
 
-RUN mkdir -p /app/sessions && chown -R node:node /app/sessions
+RUN mkdir -p /app/sessions /app/data && chown -R node:node /app/sessions /app/data
 
 USER node
 

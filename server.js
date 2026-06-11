@@ -7,6 +7,7 @@ const FileStore = require('session-file-store')(session);
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { google } = require('googleapis');
 
 const {
@@ -19,18 +20,52 @@ const {
   PORT = 3000,
   ALLOWED_ORIGIN = 'http://localhost:5173',
   ALLOWED_EMAILS = '',
+  ADMIN_EMAILS = '',
   NODE_ENV,
 } = process.env;
-
-// Comma-separated list of allowed emails; empty = allow all (open access)
-const allowedEmails = ALLOWED_EMAILS
-  ? new Set(ALLOWED_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean))
-  : null;
 
 if (!SESSION_SECRET) console.warn('[warn] SESSION_SECRET not set — using insecure default');
 if (!GOOGLE_CLIENT_ID) console.warn('[warn] GOOGLE_CLIENT_ID not set');
 if (!GOOGLE_CLIENT_SECRET) console.warn('[warn] GOOGLE_CLIENT_SECRET not set — OAuth will not work');
 if (!OPENROUTER_API_KEY) console.warn('[warn] OPENROUTER_API_KEY not set');
+
+// ─── Admin config ─────────────────────────────────────────────────────────────
+
+const ADMIN_CONFIG_PATH = path.join(__dirname, 'data', 'admin.json');
+
+const adminEmailSet = new Set(
+  ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+);
+if (adminEmailSet.size === 0) console.warn('[warn] ADMIN_EMAILS not set — no admin access possible');
+
+function isAdmin(email) { return adminEmailSet.has(email?.toLowerCase()); }
+
+function loadAdminConfig() {
+  try { return JSON.parse(fs.readFileSync(ADMIN_CONFIG_PATH, 'utf8')); }
+  catch {
+    const cfg = {
+      appEnabled: true,
+      allowedEmails: ALLOWED_EMAILS
+        ? ALLOWED_EMAILS.split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
+        : [],
+      model: OPENROUTER_MODEL,
+    };
+    saveAdminConfig(cfg);
+    return cfg;
+  }
+}
+
+function saveAdminConfig(cfg) {
+  const dir = path.dirname(ADMIN_CONFIG_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmp = ADMIN_CONFIG_PATH + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(cfg, null, 2), 'utf8');
+  fs.renameSync(tmp, ADMIN_CONFIG_PATH);
+}
+
+let adminConfig = loadAdminConfig();
+
+// ─── Express setup ────────────────────────────────────────────────────────────
 
 const app = express();
 app.set('trust proxy', 1);
@@ -68,10 +103,25 @@ function requireAuth(req, res, next) {
   next();
 }
 
+function requireAdmin(req, res, next) {
+  if (!req.session?.user) return res.status(401).json({ error: 'unauthenticated' });
+  if (!isAdmin(req.session.user.email)) return res.status(403).json({ error: 'forbidden' });
+  next();
+}
+
+function requireAppEnabled(req, res, next) {
+  if (!adminConfig.appEnabled && !isAdmin(req.session?.user?.email))
+    return res.status(503).json({ error: 'app_disabled' });
+  next();
+}
+
 // ─── Health ───────────────────────────────────────────────────────────────────
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.get('/api/config', (_req, res) => res.json({ model: OPENROUTER_MODEL || 'unknown' }));
+app.get('/api/config', (_req, res) => res.json({
+  model: adminConfig.model || 'unknown',
+  appEnabled: adminConfig.appEnabled,
+}));
 
 // ─── Auth routes ──────────────────────────────────────────────────────────────
 
@@ -102,8 +152,10 @@ app.get('/api/auth/google/callback', async (req, res) => {
     const { data: profile } = await oauth2Api.userinfo.get();
 
     const frontendOrigin = ALLOWED_ORIGIN.replace(/\/$/, '');
+    const emailLower = profile.email.toLowerCase();
+    const list = adminConfig.allowedEmails;
 
-    if (allowedEmails && !allowedEmails.has(profile.email.toLowerCase())) {
+    if (list.length > 0 && !list.includes(emailLower) && !isAdmin(emailLower)) {
       console.warn('[auth] blocked:', profile.email);
       return res.redirect(`${frontendOrigin}/?error=unauthorized&email=${encodeURIComponent(profile.email)}`);
     }
@@ -131,7 +183,7 @@ app.get('/api/auth/google/callback', async (req, res) => {
 
 app.get('/api/auth/me', (req, res) => {
   if (!req.session?.user) return res.status(401).json({ error: 'unauthenticated' });
-  res.json({ user: req.session.user });
+  res.json({ user: req.session.user, isAdmin: isAdmin(req.session.user.email) });
 });
 
 app.post('/api/auth/logout', (req, res) => {
@@ -139,12 +191,38 @@ app.post('/api/auth/logout', (req, res) => {
   else res.json({ ok: true });
 });
 
+// ─── Admin routes ─────────────────────────────────────────────────────────────
+
+app.get('/api/admin/config', requireAdmin, (_req, res) => res.json(adminConfig));
+
+app.put('/api/admin/config', requireAdmin, (req, res) => {
+  const { appEnabled, allowedEmails, model, openrouterApiKey } = req.body || {};
+  if (typeof appEnabled === 'boolean') adminConfig.appEnabled = appEnabled;
+  if (Array.isArray(allowedEmails))
+    adminConfig.allowedEmails = allowedEmails.map(e => e.trim().toLowerCase()).filter(Boolean);
+  if (typeof model === 'string' && model.trim()) adminConfig.model = model.trim();
+  if (typeof openrouterApiKey === 'string') adminConfig.openrouterApiKey = openrouterApiKey.trim();
+  try {
+    saveAdminConfig(adminConfig);
+    res.json({ ok: true, config: adminConfig });
+  } catch (err) {
+    console.error('[admin/config] save error:', err.message);
+    res.status(500).json({ error: 'Failed to save config' });
+  }
+});
+
+app.post('/api/admin/restart', requireAdmin, (_req, res) => {
+  res.json({ ok: true });
+  setTimeout(() => process.exit(0), 300);
+});
+
 // ─── AI proxy ─────────────────────────────────────────────────────────────────
 
 const aiLimiter = rateLimit({ windowMs: 60_000, max: 30 });
 
-app.post('/api/ai/complete', requireAuth, aiLimiter, async (req, res) => {
-  if (!OPENROUTER_API_KEY) return res.status(500).json({ error: 'OPENROUTER_API_KEY not set' });
+app.post('/api/ai/complete', requireAppEnabled, requireAuth, aiLimiter, async (req, res) => {
+  const effectiveApiKey = adminConfig.openrouterApiKey || OPENROUTER_API_KEY;
+  if (!effectiveApiKey) return res.status(500).json({ error: 'OPENROUTER_API_KEY not set' });
 
   const { messages, model } = req.body || {};
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -163,12 +241,12 @@ app.post('/api/ai/complete', requireAuth, aiLimiter, async (req, res) => {
         method: 'POST',
         signal: controller.signal,
         headers: {
-          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${effectiveApiKey}`,
           'Content-Type': 'application/json',
           'HTTP-Referer': ALLOWED_ORIGIN,
           'X-Title': 'Maejo Tech Portfolio',
         },
-        body: JSON.stringify({ model: model || OPENROUTER_MODEL, messages }),
+        body: JSON.stringify({ model: model || adminConfig.model, messages }),
       });
       clearTimeout(timeout);
 
@@ -228,7 +306,7 @@ async function ensureFolder(drive, session) {
 
 // ─── Projects CRUD ────────────────────────────────────────────────────────────
 
-app.get('/api/projects', requireAuth, async (req, res) => {
+app.get('/api/projects', requireAppEnabled, requireAuth, async (req, res) => {
   try {
     const drive = getDriveClient(req);
     const folderId = await ensureFolder(drive, req.session);
@@ -241,7 +319,7 @@ app.get('/api/projects', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/projects', requireAuth, async (req, res) => {
+app.post('/api/projects', requireAppEnabled, requireAuth, async (req, res) => {
   const { name } = req.body || {};
   if (!name) return res.status(400).json({ error: 'name required' });
   try {
@@ -261,7 +339,7 @@ app.post('/api/projects', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/projects/:id', requireAuth, async (req, res) => {
+app.get('/api/projects/:id', requireAppEnabled, requireAuth, async (req, res) => {
   try {
     const drive = getDriveClient(req);
     const content = await drive.files.get({ fileId: req.params.id, alt: 'media' });
@@ -272,7 +350,7 @@ app.get('/api/projects/:id', requireAuth, async (req, res) => {
   }
 });
 
-app.put('/api/projects/:id', requireAuth, async (req, res) => {
+app.put('/api/projects/:id', requireAppEnabled, requireAuth, async (req, res) => {
   try {
     const drive = getDriveClient(req);
     await drive.files.update({
@@ -286,7 +364,7 @@ app.put('/api/projects/:id', requireAuth, async (req, res) => {
   }
 });
 
-app.delete('/api/projects/:id', requireAuth, async (req, res) => {
+app.delete('/api/projects/:id', requireAppEnabled, requireAuth, async (req, res) => {
   try {
     const drive = getDriveClient(req);
     await drive.files.delete({ fileId: req.params.id });
@@ -299,7 +377,7 @@ app.delete('/api/projects/:id', requireAuth, async (req, res) => {
 
 // ─── Export to Google Docs ────────────────────────────────────────────────────
 
-app.post('/api/projects/:id/export-doc', requireAuth, async (req, res) => {
+app.post('/api/projects/:id/export-doc', requireAppEnabled, requireAuth, async (req, res) => {
   const { html, title } = req.body || {};
   if (!html) return res.status(400).json({ error: 'html required' });
   try {
@@ -335,7 +413,7 @@ const upload = multer({
   },
 });
 
-app.post('/api/cv/upload', requireAuth, upload.single('cv'), async (req, res) => {
+app.post('/api/cv/upload', requireAppEnabled, requireAuth, upload.single('cv'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file or unsupported type (PDF/DOCX only)' });
   try {
     let text = '';
