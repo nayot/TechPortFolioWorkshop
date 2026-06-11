@@ -97,9 +97,22 @@ function appendUsageLog(entry) {
   }
 }
 
-// Shift UTC timestamp to Thai date (UTC+7) for day-bucketing
-function toThaiDate(isoStr) {
-  return new Date(new Date(isoStr).getTime() + 7 * 3600_000).toISOString().slice(0, 10);
+// Bucket a UTC ISO timestamp into a Thai-time (UTC+7) key at the given resolution.
+// Returns YYYY-MM-DD for '1d', YYYY-MM-DDTHH:MM for sub-day resolutions.
+const RESOLUTION_MS = { '1m': 60_000, '10m': 600_000, '30m': 1_800_000, '1h': 3_600_000, '1d': 86_400_000 };
+const THAI_OFFSET_MS = 7 * 3600_000;
+
+function toBucket(isoStr, resolution) {
+  const d = new Date(new Date(isoStr).getTime() + THAI_OFFSET_MS);
+  const Y = d.getUTCFullYear();
+  const M = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const D = String(d.getUTCDate()).padStart(2, '0');
+  if (resolution === '1d') return `${Y}-${M}-${D}`;
+  const h = String(d.getUTCHours()).padStart(2, '0');
+  const m = d.getUTCMinutes();
+  const step = RESOLUTION_MS[resolution] / 60_000; // minutes per bucket
+  const bucketMin = String(Math.floor(m / step) * step).padStart(2, '0');
+  return `${Y}-${M}-${D}T${h}:${bucketMin}`;
 }
 
 // ─── Local project storage helpers ───────────────────────────────────────────
@@ -471,7 +484,8 @@ app.post('/api/cv/upload', requireAppEnabled, requireAuth, upload.single('cv'), 
 // ─── Usage report ────────────────────────────────────────────────────────────
 
 app.get('/api/admin/usage', requireAdmin, async (req, res) => {
-  const toDate  = req.query.to   ? new Date(req.query.to   + 'T23:59:59Z') : new Date();
+  const resolution = RESOLUTION_MS[req.query.resolution] ? req.query.resolution : '1d';
+  const toDate   = req.query.to   ? new Date(req.query.to   + 'T23:59:59Z') : new Date();
   const fromDate = req.query.from ? new Date(req.query.from + 'T00:00:00Z')
                                   : new Date(Date.now() - 29 * 86_400_000);
 
@@ -491,44 +505,56 @@ app.get('/api/admin/usage', requireAdmin, async (req, res) => {
     if (err.code !== 'ENOENT') console.error('[usage]', err.message);
   }
 
-  const daily = {}, byUser = {}, byModel = {};
+  const buckets = {}, byUser = {}, byModel = {};
+  const add = (map, key, init) => {
+    if (!map[key]) map[key] = { ...init, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+    map[key].calls++;
+    map[key].inputTokens  += e.inputTokens  || 0;
+    map[key].outputTokens += e.outputTokens || 0;
+    map[key].costUsd      += e.costUsd      || 0;
+  };
   for (const e of entries) {
-    const day = toThaiDate(e.ts);
-    const add = (map, key, init) => {
-      if (!map[key]) map[key] = { ...init, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
-      map[key].calls++;
-      map[key].inputTokens += e.inputTokens || 0;
-      map[key].outputTokens += e.outputTokens || 0;
-      map[key].costUsd += e.costUsd || 0;
-    };
-    add(daily,   day,     { date: day });
-    add(byUser,  e.email, { email: e.email });
-    add(byModel, e.model, { model: e.model });
+    const key = toBucket(e.ts, resolution);
+    if (!buckets[key]) buckets[key] = { bucket: key, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+    buckets[key].calls++;
+    buckets[key].inputTokens  += e.inputTokens  || 0;
+    buckets[key].outputTokens += e.outputTokens || 0;
+    buckets[key].costUsd      += e.costUsd      || 0;
+    if (!byUser[e.email]) byUser[e.email] = { email: e.email, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+    byUser[e.email].calls++;
+    byUser[e.email].inputTokens  += e.inputTokens  || 0;
+    byUser[e.email].outputTokens += e.outputTokens || 0;
+    byUser[e.email].costUsd      += e.costUsd      || 0;
+    if (!byModel[e.model]) byModel[e.model] = { model: e.model, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 };
+    byModel[e.model].calls++;
+    byModel[e.model].inputTokens  += e.inputTokens  || 0;
+    byModel[e.model].outputTokens += e.outputTokens || 0;
+    byModel[e.model].costUsd      += e.costUsd      || 0;
   }
 
-  // Fill every day in range (Thai-day aligned)
-  const allDays = [];
-  const cursor = new Date(fromDate.getTime() + 7 * 3600_000);
-  cursor.setUTCHours(0, 0, 0, 0);
-  const endDay = toThaiDate(toDate.toISOString());
-  while (cursor.toISOString().slice(0, 10) <= endDay) {
-    const d = cursor.toISOString().slice(0, 10);
-    allDays.push(daily[d] || { date: d, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 });
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  // Fill all buckets in range (capped at 2000 to stay fast)
+  const stepMs = RESOLUTION_MS[resolution];
+  const thaiFrom = Math.floor((fromDate.getTime() + THAI_OFFSET_MS) / stepMs) * stepMs;
+  const thaiTo   = toDate.getTime() + THAI_OFFSET_MS;
+  const allBuckets = [];
+  for (let t = thaiFrom; t <= thaiTo && allBuckets.length < 2000; t += stepMs) {
+    const key = toBucket(new Date(t - THAI_OFFSET_MS).toISOString(), resolution);
+    allBuckets.push(buckets[key] || { bucket: key, calls: 0, inputTokens: 0, outputTokens: 0, costUsd: 0 });
   }
 
   const summary = entries.reduce((s, e) => ({
-    totalCalls: s.totalCalls + 1,
-    totalInputTokens: s.totalInputTokens + (e.inputTokens || 0),
+    totalCalls:        s.totalCalls + 1,
+    totalInputTokens:  s.totalInputTokens  + (e.inputTokens  || 0),
     totalOutputTokens: s.totalOutputTokens + (e.outputTokens || 0),
-    totalCostUsd: s.totalCostUsd + (e.costUsd || 0),
+    totalCostUsd:      s.totalCostUsd      + (e.costUsd      || 0),
   }), { totalCalls: 0, totalInputTokens: 0, totalOutputTokens: 0, totalCostUsd: 0 });
 
   res.json({
-    period: { from: fromDate.toISOString().slice(0, 10), to: toDate.toISOString().slice(0, 10) },
+    resolution,
+    period:  { from: fromDate.toISOString().slice(0, 10), to: toDate.toISOString().slice(0, 10) },
     summary,
-    daily: allDays,
-    byUser: Object.values(byUser).sort((a, b) => b.costUsd - a.costUsd),
+    buckets: allBuckets,
+    byUser:  Object.values(byUser).sort((a, b) => b.costUsd - a.costUsd),
     byModel: Object.values(byModel).sort((a, b) => b.costUsd - a.costUsd),
   });
 });

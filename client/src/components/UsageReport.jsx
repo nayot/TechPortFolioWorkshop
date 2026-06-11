@@ -10,9 +10,34 @@ const PERIODS = [
   { label: '90 วัน', days: 90 },
 ];
 
+const RESOLUTIONS = [
+  { value: '1m',  label: '1 นาที'   },
+  { value: '10m', label: '10 นาที'  },
+  { value: '30m', label: '30 นาที'  },
+  { value: '1h',  label: '1 ชั่วโมง' },
+  { value: '1d',  label: '1 วัน'    },
+];
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function daysAgoStr(n) { return new Date(Date.now() - (n - 1) * 86_400_000).toISOString().slice(0, 10); }
 function fmtNum(n) { return n.toLocaleString('en-US'); }
 function fmtCost(n) { return '$' + n.toFixed(4); }
-function fmtDate(d) { const [, m, day] = d.split('-'); return `${day}/${m}`; }
+
+// Short label for X axis
+function fmtBucket(key, resolution) {
+  if (resolution === '1d' || !key.includes('T')) {
+    const [, m, d] = key.split('-');
+    return `${d}/${m}`;
+  }
+  return key.split('T')[1]; // HH:MM
+}
+
+// Full label for tooltip
+function fmtBucketFull(key, resolution) {
+  if (!key.includes('T')) return key;
+  const [date, time] = key.split('T');
+  return `${date} ${time}`;
+}
 
 function SummaryCard({ label, value }) {
   return (
@@ -54,109 +79,113 @@ function UsageTable({ rows, cols }) {
   );
 }
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
-function daysAgoStr(n) { return new Date(Date.now() - (n - 1) * 86_400_000).toISOString().slice(0, 10); }
-
 export default function UsageReport() {
-  const [from, setFrom] = useState(() => daysAgoStr(30));
-  const [to,   setTo]   = useState(() => todayStr());
+  const [from,       setFrom]       = useState(() => daysAgoStr(30));
+  const [to,         setTo]         = useState(() => todayStr());
+  const [resolution, setResolution] = useState('1d');
   const [activeDays, setActiveDays] = useState(30);
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [data,       setData]       = useState(null);
+  const [loading,    setLoading]    = useState(false);
+  const [error,      setError]      = useState('');
 
-  function fetchData(fromDate, toDate) {
+  function fetchData(fromDate, toDate, res) {
     setLoading(true);
     setError('');
-    api.get(`/api/admin/usage?from=${fromDate}&to=${toDate}`)
+    api.get(`/api/admin/usage?from=${fromDate}&to=${toDate}&resolution=${res}`)
       .then(setData)
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { fetchData(from, to); }, []); // initial load
+  useEffect(() => { fetchData(from, to, resolution); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePreset(days) {
     const f = daysAgoStr(days);
     const t = todayStr();
-    setFrom(f);
-    setTo(t);
-    setActiveDays(days);
-    fetchData(f, t);
+    setFrom(f); setTo(t); setActiveDays(days);
+    fetchData(f, t, resolution);
   }
 
   function handleCustomFetch() {
     if (!from || !to || from > to) { setError('กรุณาเลือกช่วงวันที่ให้ถูกต้อง'); return; }
     setActiveDays(null);
-    fetchData(from, to);
+    fetchData(from, to, resolution);
   }
 
-  const dayCount = data ? data.daily.length : 0;
-  const interval = dayCount <= 7 ? 0 : dayCount <= 30 ? 4 : 8;
+  function handleResolution(r) {
+    setResolution(r);
+    fetchData(from, to, r);
+  }
 
-  const chartData = data?.daily.map(d => ({
-    date:  fmtDate(d.date),
-    calls: d.calls,
-    cost:  parseFloat(d.costUsd.toFixed(6)),
+  const bucketCount = data?.buckets?.length ?? 0;
+  const axisInterval = bucketCount <= 12 ? 0
+    : bucketCount <= 60  ? 4
+    : bucketCount <= 120 ? 9
+    : Math.floor(bucketCount / 10);
+
+  const res = data?.resolution ?? resolution;
+  const chartData = data?.buckets.map(b => ({
+    label: fmtBucket(b.bucket, res),
+    full:  fmtBucketFull(b.bucket, res),
+    calls: b.calls,
+    cost:  parseFloat(b.costUsd.toFixed(6)),
   })) ?? [];
 
-
   const userCols = [
-    { key: 'email',        label: 'ผู้ใช้',         mono: true },
-    { key: 'calls',        label: 'Calls',          right: true, fmt: fmtNum },
-    { key: 'inputTokens',  label: 'Input tokens',   right: true, muted: true, fmt: fmtNum },
-    { key: 'outputTokens', label: 'Output tokens',  right: true, muted: true, fmt: fmtNum },
-    { key: 'costUsd',      label: 'Cost (USD)',      right: true, mono: true, fmt: fmtCost },
+    { key: 'email',        label: 'ผู้ใช้',        mono: true },
+    { key: 'calls',        label: 'Calls',         right: true, fmt: fmtNum },
+    { key: 'inputTokens',  label: 'Input tokens',  right: true, muted: true, fmt: fmtNum },
+    { key: 'outputTokens', label: 'Output tokens', right: true, muted: true, fmt: fmtNum },
+    { key: 'costUsd',      label: 'Cost (USD)',     right: true, mono: true,  fmt: fmtCost },
   ];
   const modelCols = [
-    { key: 'model',        label: 'โมเดล',           mono: true },
-    { key: 'calls',        label: 'Calls',           right: true, fmt: fmtNum },
-    { key: 'inputTokens',  label: 'Input tokens',    right: true, muted: true, fmt: fmtNum },
-    { key: 'outputTokens', label: 'Output tokens',   right: true, muted: true, fmt: fmtNum },
-    { key: 'costUsd',      label: 'Cost (USD)',       right: true, mono: true, fmt: fmtCost },
+    { key: 'model',        label: 'โมเดล',         mono: true },
+    { key: 'calls',        label: 'Calls',         right: true, fmt: fmtNum },
+    { key: 'inputTokens',  label: 'Input tokens',  right: true, muted: true, fmt: fmtNum },
+    { key: 'outputTokens', label: 'Output tokens', right: true, muted: true, fmt: fmtNum },
+    { key: 'costUsd',      label: 'Cost (USD)',     right: true, mono: true,  fmt: fmtCost },
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-6">
       {/* Period selector */}
       <div className="flex flex-wrap items-center gap-2">
         {PERIODS.map(p => (
-          <button
-            key={p.days}
-            onClick={() => handlePreset(p.days)}
+          <button key={p.days} onClick={() => handlePreset(p.days)}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors border ${
               activeDays === p.days
                 ? 'bg-navy text-white border-navy'
                 : 'border-warm-border text-warm-muted hover:border-navy hover:text-navy'
             }`}
-          >
-            {p.label}
-          </button>
+          >{p.label}</button>
         ))}
         <span className="text-warm-border">|</span>
-        <input
-          type="date"
-          value={from}
-          max={to}
+        <input type="date" value={from} max={to}
           onChange={e => { setFrom(e.target.value); setActiveDays(null); }}
           className="border border-warm-border rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:border-navy"
         />
         <span className="text-xs text-warm-muted">ถึง</span>
-        <input
-          type="date"
-          value={to}
-          min={from}
-          max={todayStr()}
+        <input type="date" value={to} min={from} max={todayStr()}
           onChange={e => { setTo(e.target.value); setActiveDays(null); }}
           className="border border-warm-border rounded-lg px-2 py-1.5 text-sm bg-white focus:outline-none focus:border-navy"
         />
-        <button
-          onClick={handleCustomFetch}
-          disabled={loading}
+        <button onClick={handleCustomFetch} disabled={loading}
           className="px-4 py-1.5 bg-navy text-white text-sm rounded-lg hover:bg-navy/90 disabled:opacity-50"
-        >
-          {loading ? '...' : 'ดึงข้อมูล'}
-        </button>
+        >{loading ? '...' : 'ดึงข้อมูล'}</button>
+      </div>
+
+      {/* Resolution selector */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-warm-muted font-semibold">ความละเอียด:</span>
+        {RESOLUTIONS.map(r => (
+          <button key={r.value} onClick={() => handleResolution(r.value)}
+            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors border ${
+              resolution === r.value
+                ? 'bg-gold text-navy border-gold'
+                : 'border-warm-border text-warm-muted hover:border-navy hover:text-navy'
+            }`}
+          >{r.label}</button>
+        ))}
       </div>
 
       {error && <div className="text-red-600 text-sm">{error}</div>}
@@ -165,35 +194,41 @@ export default function UsageReport() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 gap-3">
-            <SummaryCard label="API Calls"      value={fmtNum(data.summary.totalCalls)} />
-            <SummaryCard label="ค่าใช้จ่าย (USD)" value={fmtCost(data.summary.totalCostUsd)} />
-            <SummaryCard label="Input tokens"   value={fmtNum(data.summary.totalInputTokens)} />
-            <SummaryCard label="Output tokens"  value={fmtNum(data.summary.totalOutputTokens)} />
+            <SummaryCard label="API Calls"        value={fmtNum(data.summary.totalCalls)} />
+            <SummaryCard label="ค่าใช้จ่าย (USD)"  value={fmtCost(data.summary.totalCostUsd)} />
+            <SummaryCard label="Input tokens"     value={fmtNum(data.summary.totalInputTokens)} />
+            <SummaryCard label="Output tokens"    value={fmtNum(data.summary.totalOutputTokens)} />
           </div>
 
-          {/* Daily calls chart */}
+          {/* Calls chart */}
           <div className="bg-white border border-warm-border rounded-xl p-4">
-            <p className="text-xs font-semibold text-warm-muted uppercase mb-3">API Calls รายวัน</p>
+            <p className="text-xs font-semibold text-warm-muted uppercase mb-3">API Calls</p>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={chartData} margin={{ top: 0, right: 4, left: -24, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0ece6" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={interval} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={axisInterval} />
                 <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
-                <Tooltip formatter={v => [v, 'Calls']} />
+                <Tooltip
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.full ?? ''}
+                  formatter={v => [v, 'Calls']}
+                />
                 <Bar dataKey="calls" fill="#1a1a2e" radius={[2, 2, 0, 0]} maxBarSize={24} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Daily cost chart */}
+          {/* Cost chart */}
           <div className="bg-white border border-warm-border rounded-xl p-4">
-            <p className="text-xs font-semibold text-warm-muted uppercase mb-3">ค่าใช้จ่ายรายวัน (USD)</p>
+            <p className="text-xs font-semibold text-warm-muted uppercase mb-3">ค่าใช้จ่าย (USD)</p>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={chartData} margin={{ top: 0, right: 4, left: -24, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0ece6" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={interval} />
+                <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={axisInterval} />
                 <YAxis tick={{ fontSize: 10 }} />
-                <Tooltip formatter={v => ['$' + Number(v).toFixed(5), 'Cost']} />
+                <Tooltip
+                  labelFormatter={(_, payload) => payload?.[0]?.payload?.full ?? ''}
+                  formatter={v => ['$' + Number(v).toFixed(5), 'Cost']}
+                />
                 <Bar dataKey="cost" fill="#d4a843" radius={[2, 2, 0, 0]} maxBarSize={24} />
               </BarChart>
             </ResponsiveContainer>
@@ -215,8 +250,8 @@ export default function UsageReport() {
             <UsageTable rows={data.byModel} cols={modelCols} />
           </div>
 
-          <p className="text-xs text-warm-muted pb-2">
-            * ค่าใช้จ่ายใช้ราคาจาก OpenRouter โดยตรงเมื่อมี หรือประมาณตารางราคา (มิ.ย. 2569)
+          <p className="text-xs text-warm-muted">
+            * ค่าใช้จ่ายใช้ราคาจาก OpenRouter โดยตรงเมื่อมี หรือประมาณตามตารางราคา (มิ.ย. 2569)
             — เวลาแสดงตาม UTC+7
           </p>
         </>
