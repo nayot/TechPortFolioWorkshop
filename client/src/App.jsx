@@ -156,6 +156,10 @@ export default function App() {
           />
         )}
       </main>
+
+      <footer className="text-center text-xs text-warm-muted py-3 border-t border-warm-border bg-parchment">
+        Version 1.1 &nbsp;·&nbsp; 13.06.2026 &nbsp;·&nbsp; © Nayot Kurukitkoson
+      </footer>
     </div>
   );
 }
