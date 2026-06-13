@@ -17,7 +17,7 @@ function knownValue(model) {
   return MODEL_OPTIONS.find(o => o.value === model && o.value !== 'custom')?.value ?? 'custom';
 }
 
-export default function AdminPage({ onConfigChange }) {
+export default function AdminPage({ onConfigChange, onExit }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -37,6 +37,11 @@ export default function AdminPage({ onConfigChange }) {
 
   // tabs
   const [adminTab, setAdminTab] = useState('settings');
+
+  // all portfolios
+  const [allPortfolios, setAllPortfolios] = useState(null);
+  const [portfoliosLoading, setPortfoliosLoading] = useState(false);
+  const [portfoliosError, setPortfoliosError] = useState('');
 
   // restart
   const [restartConfirm, setRestartConfirm] = useState(false);
@@ -131,6 +136,18 @@ export default function AdminPage({ onConfigChange }) {
     catch { /* server closed before response — that's fine */ }
   }
 
+  function handleTabChange(id) {
+    setAdminTab(id);
+    if (id === 'portfolios' && !allPortfolios && !portfoliosLoading) {
+      setPortfoliosLoading(true);
+      setPortfoliosError('');
+      api.get('/api/admin/projects')
+        .then(d => setAllPortfolios(d.owners))
+        .catch(e => setPortfoliosError(e.message))
+        .finally(() => setPortfoliosLoading(false));
+    }
+  }
+
   const selectedOption = MODEL_OPTIONS.find(o => o.value === modelSelect);
 
   if (loading) return (
@@ -145,14 +162,28 @@ export default function AdminPage({ onConfigChange }) {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="max-w-xl mx-auto px-6 pt-6">
-        <h2 className="text-lg font-bold text-navy mb-3">ผู้ดูแลระบบ</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold text-navy">ผู้ดูแลระบบ</h2>
+          {onExit && (
+            <button
+              onClick={onExit}
+              className="text-sm text-warm-muted hover:text-navy transition-colors"
+            >
+              ← ออกจากโหมดผู้ดูแล
+            </button>
+          )}
+        </div>
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-warm-border mb-4">
-          {[{ id: 'settings', label: 'ตั้งค่า' }, { id: 'usage', label: 'รายงานการใช้งาน' }].map(t => (
+          {[
+            { id: 'settings',   label: 'ตั้งค่า' },
+            { id: 'usage',      label: 'รายงานการใช้งาน' },
+            { id: 'portfolios', label: 'Portfolio ทั้งหมด' },
+          ].map(t => (
             <button
               key={t.id}
-              onClick={() => setAdminTab(t.id)}
+              onClick={() => handleTabChange(t.id)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
                 adminTab === t.id
                   ? 'border-navy text-navy'
@@ -169,6 +200,51 @@ export default function AdminPage({ onConfigChange }) {
         )}
 
         {adminTab === 'usage' && <UsageReport />}
+
+        {adminTab === 'portfolios' && (
+          <div className="pb-8">
+            {portfoliosLoading && (
+              <div className="text-sm text-warm-muted py-6 text-center">กำลังโหลด...</div>
+            )}
+            {portfoliosError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">{portfoliosError}</div>
+            )}
+            {allPortfolios && allPortfolios.length === 0 && (
+              <div className="text-sm text-warm-muted py-6 text-center">ยังไม่มี Portfolio</div>
+            )}
+            {allPortfolios && allPortfolios.map(owner => (
+              <div key={owner.sub} className="bg-parchment border border-warm-border rounded-xl p-4 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <span className="font-semibold text-sm text-navy">
+                      {owner.ownerName || owner.ownerEmail || owner.sub}
+                    </span>
+                    {owner.ownerEmail && owner.ownerName && (
+                      <span className="text-xs text-warm-muted ml-2">{owner.ownerEmail}</span>
+                    )}
+                  </div>
+                  <span className="text-xs bg-navy/10 text-navy rounded-full px-2 py-0.5">
+                    {owner.projects.length} portfolio
+                  </span>
+                </div>
+                <div className="divide-y divide-warm-border">
+                  {owner.projects.map(p => (
+                    <div key={p.id} className="flex items-center justify-between py-1.5 text-sm">
+                      <span className="text-navy">{p.name.replace('.techport.json', '')}</span>
+                      <span className="text-xs text-warm-muted">
+                        {p.updatedAt
+                          ? new Date(p.updatedAt).toLocaleDateString('th-TH')
+                          : p.createdAt
+                            ? new Date(p.createdAt).toLocaleDateString('th-TH')
+                            : '—'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {adminTab === 'settings' && <>
         {/* ── 1. App Status ───────────────────────────────────────────────────── */}

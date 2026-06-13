@@ -5,6 +5,8 @@ import {
 import { api } from '../api.js';
 
 const PERIODS = [
+  { label: 'วันนี้',  days: 1  },
+  { label: '3 วัน',  days: 3  },
   { label: '7 วัน',  days: 7  },
   { label: '30 วัน', days: 30 },
   { label: '90 วัน', days: 90 },
@@ -102,8 +104,10 @@ export default function UsageReport() {
   function handlePreset(days) {
     const f = daysAgoStr(days);
     const t = todayStr();
+    const res = days <= 3 ? '1h' : resolution;
     setFrom(f); setTo(t); setActiveDays(days);
-    fetchData(f, t, resolution);
+    if (days <= 3) setResolution(res);
+    fetchData(f, t, res);
   }
 
   function handleCustomFetch() {

@@ -119,10 +119,13 @@ export default function App() {
         )}
 
         {page === 'admin' && isAdmin && (
-          <AdminPage onConfigChange={(cfg) => {
-            setAppEnabled(cfg.appEnabled);
-            setModel(cfg.model);
-          }} />
+          <AdminPage
+            onConfigChange={(cfg) => {
+              setAppEnabled(cfg.appEnabled);
+              setModel(cfg.model);
+            }}
+            onExit={() => setPage('projects')}
+          />
         )}
 
         {page === 'projects' && (

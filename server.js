@@ -286,6 +286,33 @@ app.post('/api/admin/restart', requireAdmin, (_req, res) => {
   setTimeout(() => process.exit(0), 300);
 });
 
+app.get('/api/admin/projects', requireAdmin, (_req, res) => {
+  try {
+    const baseDir = path.join(__dirname, 'data', 'projects');
+    if (!fs.existsSync(baseDir)) return res.json({ owners: [] });
+    const subs = fs.readdirSync(baseDir).filter(name =>
+      fs.statSync(path.join(baseDir, name)).isDirectory()
+    );
+    const owners = subs.map(sub => {
+      const dir = path.join(baseDir, sub);
+      const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+      let ownerEmail = '', ownerName = '';
+      const projects = files.map(f => {
+        try {
+          const raw = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+          if (!ownerEmail && raw.ownerEmail) { ownerEmail = raw.ownerEmail; ownerName = raw.ownerName || ''; }
+          return { id: raw.id, name: raw.name, createdAt: raw.createdAt, updatedAt: raw.updatedAt };
+        } catch { return null; }
+      }).filter(Boolean);
+      return { sub, ownerEmail, ownerName, projects };
+    });
+    res.json({ owners });
+  } catch (err) {
+    console.error('[admin/projects]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── AI proxy ─────────────────────────────────────────────────────────────────
 
 const aiLimiter = rateLimit({ windowMs: 60_000, max: 30 });
@@ -402,7 +429,12 @@ app.post('/api/projects', requireAppEnabled, requireAuth, (req, res) => {
     ensureUserDir(sub);
     const id = randomUUID();
     const fileName = `${name}.techport.json`;
-    const data = { id, name: fileName, createdAt: new Date().toISOString(), steps: {} };
+    const data = {
+      id, name: fileName, createdAt: new Date().toISOString(),
+      ownerEmail: req.session.user.email || '',
+      ownerName:  req.session.user.name  || '',
+      steps: {},
+    };
     writeProjectFile(projectFilePath(sub, id), data);
     res.json({ id, name: fileName, data });
   } catch (err) {
