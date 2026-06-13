@@ -9,7 +9,7 @@ const ANTI_HALLUCINATION = `ใช้เฉพาะข้อมูลที่�
 // Parameterised rewrite template — used by Profile, Skills, Reflection.
 function makeRewritePrompt(componentName) {
   return (userEditedText) =>
-    `[ROLE] บรรณาธิการ Tech Portfolio โครงการ Deep Mentorship Program มหาวิทยาลัยแม่โจ้
+    `[ROLE] บรรณาธิการ Tech Portfolio
 [TASK] ปรับปรุงคำแถลง${componentName}ฉบับที่ผู้ใช้แก้ไข ให้กระชับ ชัดเจน และสอดคล้องกับกรอบ Tech Portfolio โดยคงความหมายและข้อเท็จจริงที่ผู้ใช้ระบุไว้ทุกประการ
 [CONTEXT] คำแถลงฉบับผู้ใช้แก้ไข:
 """${userEditedText}"""
@@ -33,11 +33,11 @@ export const STEPS = [
     description: 'ตัวตนและคำแถลงการวางตำแหน่งของนักวิจัย',
     buildRewritePrompt: makeRewritePrompt('โปรไฟล์'),
     buildPrompt: ({ cvText }) =>
-      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ (FY2569)
+      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio
 
 [TASK] จากประวัติย่อ (CV) ด้านล่าง ให้ (ก) ดึงข้อมูลโปรไฟล์ที่มีโครงสร้าง และ (ข) เขียนคำแถลงโปรไฟล์/การวางตำแหน่ง 4–6 ประโยค
 
-[CONTEXT] Portfolio นี้เป็นภาษากลางระหว่างพี่เลี้ยง ลูกศิษย์ และผู้ให้ทุน โปรไฟล์ควรสื่อถึงเอกลักษณ์ สาขาวิจัย การวางตำแหน่งที่โดดเด่น และทิศทางในอนาคต นักวิจัยเป็นอาจารย์หรือนักวิจัยของมหาวิทยาลัยแม่โจ้ที่จะเป็นพี่เลี้ยงให้นักศึกษาด้านเกษตร อาหาร และสุขภาพ
+[CONTEXT] Portfolio นี้เป็นภาษากลางระหว่างพี่เลี้ยง ลูกศิษย์ และผู้ให้ทุน โปรไฟล์ควรสื่อถึงเอกลักษณ์ สาขาวิจัย การวางตำแหน่งที่โดดเด่น และทิศทางในอนาคต
 ${OUTPUT_LANGUAGE_INSTRUCTION}
 CV:
 """
@@ -66,9 +66,9 @@ ${cvText || '(ไม่มี CV — กรุณากรอกข้อมู�
     description: 'ความสามารถทางเทคนิคและสาขาวิชาที่สอดคล้องกับธีมงาน',
     buildRewritePrompt: makeRewritePrompt('ทักษะ'),
     buildPrompt: ({ cvText, profile }) =>
-      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio
 
-[TASK] เสนอรายการทักษะเฉพาะด้านเทคนิคและสาขาวิชา 10–15 รายการ สำหรับนักวิจัยคนนี้ โดยสอดคล้องกับสาขาวิจัยและความเกี่ยวข้องกับการเป็นพี่เลี้ยงนักศึกษาด้านเกษตร อาหาร และสุขภาพ
+[TASK] เสนอรายการทักษะเฉพาะด้านเทคนิคและสาขาวิชา 10–15 รายการ สำหรับนักวิจัยคนนี้ โดยสอดคล้องกับสาขาวิจัยและความเกี่ยวข้องกับการเป็นพี่เลี้ยงนักศึกษาในสาขา ${profile?.domain || 'วิจัยของนักวิจัย'}
 
 [CONTEXT] โปรไฟล์นักวิจัย: ${profile?.statement || '(ดูจาก CV)'}
 สาขาวิจัย: ${profile?.domain || ''}
@@ -98,9 +98,9 @@ ${cvText || '(ไม่มี CV)'}
     outputType: 'selectable-cards',
     description: 'โครงการวิจัย/นวัตกรรมสำคัญ',
     buildPrompt: ({ cvText, profile, skills }) =>
-      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio
 
-[TASK] ดึงโครงการวิจัย/นวัตกรรมสำคัญจาก CV นี้ แล้วจัดอันดับตามผลกระทบและความเกี่ยวข้องกับการเป็นพี่เลี้ยงด้านเกษตร อาหาร และสุขภาพ รวมเฉพาะข้อมูลการอ้างอิงที่ปรากฏใน CV จริงเท่านั้น
+[TASK] ดึงโครงการวิจัย/นวัตกรรมสำคัญจาก CV นี้ แล้วจัดอันดับตามผลกระทบและความเกี่ยวข้องกับการเป็นพี่เลี้ยงในสาขา ${profile?.domain || 'วิจัยของนักวิจัย'} รวมเฉพาะข้อมูลการอ้างอิงที่ปรากฏใน CV จริงเท่านั้น
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
@@ -138,7 +138,7 @@ ${cvText || '(ไม่มี CV)'}
     outputType: 'selectable-list',
     description: 'วิธีการทำงานและกระบวนการวิจัยของนักวิจัย',
     buildPrompt: ({ cvText, profile, skills }) =>
-      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio
 
 [TASK] เสนอรายการคำอธิบายกระบวนการวิจัย/นวัตกรรม 8–12 รายการ — วิธีการทำงานของนักวิจัย วิธีการวิจัย และแนวทางการแปลงผลวิจัยสู่การใช้งานจริง
 
@@ -167,9 +167,9 @@ ${cvText || '(ไม่มี CV)'}
     outputType: 'selectable-cards',
     description: 'หลักฐานยืนยัน: ผลงานวิชาการ สิทธิบัตร ทุนวิจัย ต้นแบบ',
     buildPrompt: ({ cvText, profile, skills, projects }) =>
-      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio
 
-[TASK] ดึงและจัดอันดับหลักฐาน (ผลงานวิชาการ สิทธิบัตร ทุนวิจัย รางวัล ต้นแบบ การสาธิต) จาก CV นี้ ตามความเกี่ยวข้องกับการวางตำแหน่งนักวิจัยในฐานะพี่เลี้ยงสำหรับผู้ประกอบการด้านเกษตร อาหาร และสุขภาพ
+[TASK] ดึงและจัดอันดับหลักฐาน (ผลงานวิชาการ สิทธิบัตร ทุนวิจัย รางวัล ต้นแบบ การสาธิต) จาก CV นี้ ตามความเกี่ยวข้องกับการวางตำแหน่งนักวิจัยในฐานะพี่เลี้ยงในสาขา ${profile?.domain || 'วิจัยของนักวิจัย'}
 
 [CONTEXT] นักวิจัย: ${profile?.name || ''}
 สาขา: ${profile?.domain || ''}
@@ -206,7 +206,7 @@ ${cvText || '(ไม่มี CV)'}
     outputType: 'selectable-list',
     description: 'ผลลัพธ์และคุณค่าที่สร้างขึ้น',
     buildPrompt: ({ cvText, profile, skills, projects, evidence }) =>
-      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้
+      `[ROLE] คุณคือบรรณาธิการ Tech Portfolio
 
 [TASK] เสนอคำแถลงผลกระทบ 8–12 รายการ สำหรับนักวิจัยคนนี้ — ผลลัพธ์และคุณค่าที่เกิดขึ้นจากงานวิจัย ต่อชุมชน อุตสาหกรรม หรือนโยบาย
 
@@ -240,7 +240,7 @@ ${cvText || '(ไม่มี CV)'}
     diagnostic: true,
     excludeFromExport: true,
     buildPrompt: ({ cvText, profile, skills, projects, evidence, impact }) =>
-      `[ROLE] คุณคือที่ปรึกษาเทคโนโลยีและนวัตกรรมสำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ ผู้เชี่ยวชาญด้านการแปลงงานวิจัยสู่เชิงพาณิชย์ (Technology Transfer & Commercialization)
+      `[ROLE] คุณคือที่ปรึกษาเทคโนโลยีและนวัตกรรม ผู้เชี่ยวชาญด้านการแปลงงานวิจัยสู่เชิงพาณิชย์ (Technology Transfer & Commercialization)
 
 [TASK] วิเคราะห์ Portfolio ของนักวิจัยคนนี้และระบุ "ช่องว่างเชิงพาณิชย์" (Commercialization Gaps) — จุดที่งานวิจัยยังขาดหรือต้องการการพัฒนาเพื่อเข้าสู่ตลาดจริง เสนอ 5–8 ช่องว่างพร้อมคำแนะนำ
 
@@ -282,7 +282,7 @@ ${cvText || '(ไม่มี CV)'}
     description: 'การสะท้อนคิดและความพร้อมในการเป็นพี่เลี้ยง',
     buildRewritePrompt: makeRewritePrompt('Reflection'),
     buildPrompt: ({ profile, skills, projects, evidence, impact }) =>
-      `[ROLE] คุณคือโค้ชการสะท้อนคิด (Reflective Practice Coach) สำหรับโครงการ Deep Mentorship Program ของมหาวิทยาลัยแม่โจ้ (FY2569) ที่เน้นการพัฒนาผู้ประกอบการนักศึกษาในด้านเกษตร อาหาร และสุขภาพ
+      `[ROLE] คุณคือโค้ชการสะท้อนคิด (Reflective Practice Coach) ${profile?.domain ? `ที่เน้นการพัฒนาผู้ประกอบการนักศึกษาในด้าน ${profile.domain}` : 'ที่เน้นการพัฒนาผู้ประกอบการนักศึกษา'}
 
 [TASK] สร้างตัวเลือก Reflection 3 แนวทาง สำหรับนักวิจัยคนนี้ แต่ละแนวทางต้องเน้น:
 1. สิ่งที่นักวิจัยได้เรียนรู้จากเส้นทางวิจัยและนวัตกรรม — บทเรียนสำคัญที่ได้รับ
