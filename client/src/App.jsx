@@ -14,6 +14,7 @@ export default function App() {
   const [page, setPage] = useState('projects'); // 'projects' | 'wizard' | 'assembly' | 'mentoringPlan' | 'admin' | 'adminViewPortfolio'
   const [currentProject, setCurrentProject] = useState(null); // { id, name, data }
   const [adminViewProject, setAdminViewProject] = useState(null); // { id, name, data } for read-only admin view
+  const [adminViewTab, setAdminViewTab] = useState('portfolio'); // 'portfolio' | 'mentoringPlan'
   const [model, setModel] = useState('');
   const [appEnabled, setAppEnabled] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -59,6 +60,7 @@ export default function App() {
     try {
       const data = await api.get(`/api/admin/projects/${sub}/${id}`);
       setAdminViewProject({ id, name: data.name, data });
+      setAdminViewTab('portfolio');
       setPage('adminViewPortfolio');
     } catch (e) {
       alert('โหลด Portfolio ไม่สำเร็จ: ' + e.message);
@@ -140,14 +142,33 @@ export default function App() {
           />
         )}
 
-        {page === 'adminViewPortfolio' && adminViewProject && (
-          <AssemblyPage
-            project={adminViewProject.data}
-            projectMeta={{ id: adminViewProject.id, name: adminViewProject.name }}
-            onBack={() => setPage('admin')}
-            readOnly
-          />
-        )}
+        {page === 'adminViewPortfolio' && adminViewProject && (<>
+          <div className="flex border-b border-warm-border bg-parchment px-4 pt-2">
+            <TabButton active={adminViewTab === 'portfolio'} onClick={() => setAdminViewTab('portfolio')}>
+              Portfolio
+            </TabButton>
+            <TabButton active={adminViewTab === 'mentoringPlan'} onClick={() => setAdminViewTab('mentoringPlan')}>
+              แผน Mentoring
+            </TabButton>
+          </div>
+          {adminViewTab === 'portfolio' && (
+            <AssemblyPage
+              project={adminViewProject.data}
+              projectMeta={{ id: adminViewProject.id, name: adminViewProject.name }}
+              onBack={() => setPage('admin')}
+              readOnly
+            />
+          )}
+          {adminViewTab === 'mentoringPlan' && (
+            <MentoringPlanPage
+              project={adminViewProject.data}
+              projectMeta={{ id: adminViewProject.id, name: adminViewProject.name }}
+              onProjectUpdate={() => {}}
+              onBack={() => setPage('admin')}
+              readOnly
+            />
+          )}
+        </>)}
 
         {page === 'projects' && (
           <ProjectListPage onOpen={handleOpenProject} />

@@ -32,7 +32,7 @@ const FIELD_META = {
 
 const FIELDS = ['sessionGoal', 'diagnosticQuestions', 'gapsToClose', 'successMarkers'];
 
-export default function SessionPanel({ session, sessionIndex, onChange, onRegen, fieldLoading }) {
+export default function SessionPanel({ session, sessionIndex, onChange, onRegen, fieldLoading, readOnly = false }) {
   function handleQuestions(raw) {
     onChange({ diagnosticQuestions: raw.split('\n').filter(Boolean) });
   }
@@ -44,8 +44,9 @@ export default function SessionPanel({ session, sessionIndex, onChange, onRegen,
         <input
           className="w-full border border-warm-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white text-navy font-medium"
           value={session.sessionName || ''}
-          onChange={e => onChange({ sessionName: e.target.value })}
+          onChange={e => !readOnly && onChange({ sessionName: e.target.value })}
           placeholder={`Session ${session.sessionNumber}`}
+          readOnly={readOnly}
         />
       </div>
 
@@ -62,21 +63,24 @@ export default function SessionPanel({ session, sessionIndex, onChange, onRegen,
           <div key={field}>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-warm-muted">{meta.label}</label>
-              <button
-                onClick={() => onRegen(field, sessionIndex)}
-                disabled={loading}
-                className="text-xs px-2 py-0.5 rounded border border-warm-border text-warm-muted hover:text-navy hover:border-navy disabled:opacity-50 transition-colors flex items-center gap-1"
-              >
-                {loading ? <Spinner /> : '✨'} AI ช่วยใหม่
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => onRegen(field, sessionIndex)}
+                  disabled={loading}
+                  className="text-xs px-2 py-0.5 rounded border border-warm-border text-warm-muted hover:text-navy hover:border-navy disabled:opacity-50 transition-colors flex items-center gap-1"
+                >
+                  {loading ? <Spinner /> : '✨'} AI ช่วยใหม่
+                </button>
+              )}
             </div>
             <textarea
               className={`w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white text-navy transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}
               rows={meta.rows}
               placeholder={meta.placeholder}
               value={value}
-              onChange={e => handleChange(e.target.value)}
+              onChange={e => !readOnly && handleChange(e.target.value)}
               disabled={loading}
+              readOnly={readOnly}
             />
           </div>
         );

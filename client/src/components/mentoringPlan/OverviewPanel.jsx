@@ -7,32 +7,35 @@ function Spinner() {
   );
 }
 
-function AIField({ label, value, loading, placeholder, rows, onChange, onRegen }) {
+function AIField({ label, value, loading, placeholder, rows, onChange, onRegen, readOnly }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <label className="text-xs font-semibold text-warm-muted">{label}</label>
-        <button
-          onClick={onRegen}
-          disabled={loading}
-          className="text-xs px-2 py-0.5 rounded border border-warm-border text-warm-muted hover:text-navy hover:border-navy disabled:opacity-50 transition-colors flex items-center gap-1"
-        >
-          {loading ? <Spinner /> : '✨'} AI ช่วยใหม่
-        </button>
+        {!readOnly && (
+          <button
+            onClick={onRegen}
+            disabled={loading}
+            className="text-xs px-2 py-0.5 rounded border border-warm-border text-warm-muted hover:text-navy hover:border-navy disabled:opacity-50 transition-colors flex items-center gap-1"
+          >
+            {loading ? <Spinner /> : '✨'} AI ช่วยใหม่
+          </button>
+        )}
       </div>
       <textarea
         className={`w-full border border-warm-border rounded-lg px-3 py-2 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-gold/40 bg-white text-navy transition-opacity ${loading ? 'opacity-50 pointer-events-none' : ''}`}
         rows={rows}
         placeholder={placeholder}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => !readOnly && onChange(e.target.value)}
         disabled={loading}
+        readOnly={readOnly}
       />
     </div>
   );
 }
 
-export default function OverviewPanel({ plan, onChange, onRegen, fieldLoading }) {
+export default function OverviewPanel({ plan, onChange, onRegen, fieldLoading, readOnly = false }) {
   return (
     <div className="bg-parchment border border-warm-border rounded-xl p-5 space-y-4 mb-4">
       <h3 className="text-sm font-bold text-navy uppercase tracking-wide">ภาพรวม</h3>
@@ -46,7 +49,8 @@ export default function OverviewPanel({ plan, onChange, onRegen, fieldLoading })
           rows={2}
           placeholder="เช่น รองศาสตราจารย์ด้าน Food Technology มีประสบการณ์ IP และการ spin-off ผลงานวิจัย 15 ปี"
           value={plan.mentorProfile}
-          onChange={e => onChange({ mentorProfile: e.target.value })}
+          onChange={e => !readOnly && onChange({ mentorProfile: e.target.value })}
+          readOnly={readOnly}
         />
       </div>
 
@@ -58,6 +62,7 @@ export default function OverviewPanel({ plan, onChange, onRegen, fieldLoading })
         rows={3}
         onChange={v => onChange({ menteeSnapshot: v })}
         onRegen={() => onRegen('menteeSnapshot', null)}
+        readOnly={readOnly}
       />
 
       <AIField
@@ -68,6 +73,7 @@ export default function OverviewPanel({ plan, onChange, onRegen, fieldLoading })
         rows={2}
         onChange={v => onChange({ mentorStrengths: v })}
         onRegen={() => onRegen('mentorStrengths', null)}
+        readOnly={readOnly}
       />
     </div>
   );

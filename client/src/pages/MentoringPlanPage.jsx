@@ -65,7 +65,7 @@ ${overallNote ? `<h2>หมายเหตุรวม</h2><p style="white-space
 </body></html>`;
 }
 
-export default function MentoringPlanPage({ project, projectMeta, onProjectUpdate, onBack }) {
+export default function MentoringPlanPage({ project, projectMeta, onProjectUpdate, onBack, readOnly = false }) {
   const [plan, setPlan] = useState(() => initPlan(project.mentoringPlan));
   const [activeSession, setActiveSession] = useState(0);
   const [generating, setGenerating] = useState(false);
@@ -100,6 +100,7 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
 
   // Autosave with 3s debounce
   useEffect(() => {
+    if (readOnly) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSave(planRef.current), 3000);
     return () => clearTimeout(debounceRef.current);
@@ -107,6 +108,7 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
 
   // Save immediately on unmount to prevent data loss when switching tabs
   useEffect(() => {
+    if (readOnly) return;
     return () => {
       clearTimeout(debounceRef.current);
       api.put(`/api/projects/${projectMeta.id}`, buildUpdated(planRef.current)).catch(console.error);
@@ -239,6 +241,7 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
             onChange={updatePlan}
             onRegen={regenField}
             fieldLoading={fieldLoading}
+            readOnly={readOnly}
           />
 
           <div className="flex gap-1 mb-3">
@@ -264,6 +267,7 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
               onChange={(updates) => updateSession(activeSession, updates)}
               onRegen={regenField}
               fieldLoading={fieldLoading}
+              readOnly={readOnly}
             />
           </div>
 
@@ -274,18 +278,21 @@ export default function MentoringPlanPage({ project, projectMeta, onProjectUpdat
               rows={3}
               placeholder="บันทึกส่วนตัวหรือข้อสังเกตเพิ่มเติมสำหรับ mentee คนนี้"
               value={plan.overallNote}
-              onChange={e => updatePlan({ overallNote: e.target.value })}
+              onChange={e => !readOnly && updatePlan({ overallNote: e.target.value })}
+              readOnly={readOnly}
             />
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2 border-t border-warm-border">
-            <button
-              onClick={handleFullDraft}
-              disabled={generating}
-              className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-hover text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm transition-colors border-2 border-navy"
-            >
-              ✨ สร้าง Draft ทั้งหมด
-            </button>
+            {!readOnly && (
+              <button
+                onClick={handleFullDraft}
+                disabled={generating}
+                className="flex items-center gap-2 px-4 py-2 bg-navy hover:bg-navy-hover text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm transition-colors border-2 border-navy"
+              >
+                ✨ สร้าง Draft ทั้งหมด
+              </button>
+            )}
             <button
               onClick={handlePdf}
               className="flex items-center gap-2 px-4 py-2 bg-parchment hover:bg-gold-light text-navy rounded-lg border-2 border-warm-border font-semibold text-sm transition-colors"
