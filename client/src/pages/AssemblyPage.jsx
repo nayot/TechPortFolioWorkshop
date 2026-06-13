@@ -143,7 +143,7 @@ function initDraft(project) {
   };
 }
 
-export default function AssemblyPage({ project, projectMeta, onEditStep, onBack }) {
+export default function AssemblyPage({ project, projectMeta, onEditStep, onBack, readOnly = false }) {
   const steps = project.steps || {};
   const profile = steps.profile?.fields || steps.profile?.parsed || {};
   const skills = steps.skills?.selections || [];
@@ -277,7 +277,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                   <p className="text-sm text-gray-700">{draft.profileStatement || '—'}</p>
                 </>
               )}
-              <button onClick={() => onEditStep('profile')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+              {!readOnly && <button onClick={() => onEditStep('profile')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>}
             </div>
           </Section>
 
@@ -300,7 +300,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                   {draft.skillsStatement && <p className="text-sm text-gray-700 mt-2">{draft.skillsStatement}</p>}
                 </>
               )}
-              <button onClick={() => onEditStep('skills')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+              {!readOnly && <button onClick={() => onEditStep('skills')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>}
             </div>
           </Section>
 
@@ -320,7 +320,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                   )}
                 </div>
               )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
-              <button onClick={() => onEditStep('projects')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+              {!readOnly && <button onClick={() => onEditStep('projects')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>}
             </div>
           </Section>
 
@@ -333,7 +333,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                   <span key={s} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">{s}</span>
                 )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
               </div>
-              <button onClick={() => onEditStep('process')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+              {!readOnly && <button onClick={() => onEditStep('process')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>}
             </div>
           </Section>
 
@@ -351,7 +351,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                   {e.description && <p className="text-xs text-gray-500 mt-0.5">{e.description}</p>}
                 </div>
               )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
-              <button onClick={() => onEditStep('evidence')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>
+              {!readOnly && <button onClick={() => onEditStep('evidence')} className="text-xs text-indigo-400 hover:text-indigo-600">↩ แก้ไขใน Wizard</button>}
             </div>
           </Section>
 
@@ -362,7 +362,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
               {impact.length > 0 ? impact.map((item, idx) => (
                 <div key={idx} className="flex gap-2 text-sm text-gray-700"><span className="text-indigo-400 shrink-0">•</span>{item}</div>
               )) : <span className="text-gray-400 text-sm">ยังไม่ได้เลือก</span>}
-              <button onClick={() => onEditStep('impact')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-1 block">↩ แก้ไขใน Wizard</button>
+              {!readOnly && <button onClick={() => onEditStep('impact')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-1 block">↩ แก้ไขใน Wizard</button>}
             </div>
           </Section>
 
@@ -373,7 +373,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
             ) : (
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{draft.reflection || <span className="text-gray-400">ยังไม่ได้เขียน</span>}</p>
             )}
-            <button onClick={() => onEditStep('reflection')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-2 block">↩ แก้ไขใน Wizard</button>
+            {!readOnly && <button onClick={() => onEditStep('reflection')} className="text-xs text-indigo-400 hover:text-indigo-600 mt-2 block">↩ แก้ไขใน Wizard</button>}
           </Section>
 
         </div>
@@ -406,7 +406,7 @@ export default function AssemblyPage({ project, projectMeta, onEditStep, onBack 
                   >
                     📝 DOCX
                   </button>
-                  <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>
+                  {!readOnly && <button onClick={() => onEditStep('commercialization')} className="text-xs text-amber-600 hover:text-amber-800">↩ แก้ไข</button>}
                 </div>
               </div>
 

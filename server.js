@@ -286,6 +286,17 @@ app.post('/api/admin/restart', requireAdmin, (_req, res) => {
   setTimeout(() => process.exit(0), 300);
 });
 
+app.get('/api/admin/projects/:sub/:id', requireAdmin, (req, res) => {
+  try {
+    const filePath = projectFilePath(req.params.sub, req.params.id);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Not found' });
+    res.json(JSON.parse(fs.readFileSync(filePath, 'utf8')));
+  } catch (err) {
+    console.error('[admin/projects/get]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/admin/projects', requireAdmin, (_req, res) => {
   try {
     const baseDir = path.join(__dirname, 'data', 'projects');

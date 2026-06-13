@@ -17,7 +17,7 @@ function knownValue(model) {
   return MODEL_OPTIONS.find(o => o.value === model && o.value !== 'custom')?.value ?? 'custom';
 }
 
-export default function AdminPage({ onConfigChange, onExit }) {
+export default function AdminPage({ onConfigChange, onExit, onViewPortfolio }) {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -231,13 +231,23 @@ export default function AdminPage({ onConfigChange, onExit }) {
                   {owner.projects.map(p => (
                     <div key={p.id} className="flex items-center justify-between py-1.5 text-sm">
                       <span className="text-navy">{p.name.replace('.techport.json', '')}</span>
-                      <span className="text-xs text-warm-muted">
-                        {p.updatedAt
-                          ? new Date(p.updatedAt).toLocaleDateString('th-TH')
-                          : p.createdAt
-                            ? new Date(p.createdAt).toLocaleDateString('th-TH')
-                            : '—'}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-warm-muted">
+                          {p.updatedAt
+                            ? new Date(p.updatedAt).toLocaleDateString('th-TH')
+                            : p.createdAt
+                              ? new Date(p.createdAt).toLocaleDateString('th-TH')
+                              : '—'}
+                        </span>
+                        {onViewPortfolio && (
+                          <button
+                            onClick={() => onViewPortfolio(owner.sub, p.id)}
+                            className="text-xs text-navy border border-warm-border rounded px-2 py-0.5 hover:border-navy transition-colors"
+                          >
+                            ดู
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

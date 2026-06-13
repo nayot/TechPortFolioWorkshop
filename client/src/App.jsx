@@ -11,8 +11,9 @@ import AdminPage from './pages/AdminPage.jsx';
 export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState('projects'); // 'projects' | 'wizard' | 'assembly' | 'mentoringPlan' | 'admin'
+  const [page, setPage] = useState('projects'); // 'projects' | 'wizard' | 'assembly' | 'mentoringPlan' | 'admin' | 'adminViewPortfolio'
   const [currentProject, setCurrentProject] = useState(null); // { id, name, data }
+  const [adminViewProject, setAdminViewProject] = useState(null); // { id, name, data } for read-only admin view
   const [model, setModel] = useState('');
   const [appEnabled, setAppEnabled] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -52,6 +53,16 @@ export default function App() {
 
   function handleProjectUpdate(data) {
     setCurrentProject(prev => ({ ...prev, data }));
+  }
+
+  async function handleAdminViewPortfolio(sub, id) {
+    try {
+      const data = await api.get(`/api/admin/projects/${sub}/${id}`);
+      setAdminViewProject({ id, name: data.name, data });
+      setPage('adminViewPortfolio');
+    } catch (e) {
+      alert('โหลด Portfolio ไม่สำเร็จ: ' + e.message);
+    }
   }
 
   if (loading) {
@@ -125,6 +136,16 @@ export default function App() {
               setModel(cfg.model);
             }}
             onExit={() => setPage('projects')}
+            onViewPortfolio={handleAdminViewPortfolio}
+          />
+        )}
+
+        {page === 'adminViewPortfolio' && adminViewProject && (
+          <AssemblyPage
+            project={adminViewProject.data}
+            projectMeta={{ id: adminViewProject.id, name: adminViewProject.name }}
+            onBack={() => setPage('admin')}
+            readOnly
           />
         )}
 
