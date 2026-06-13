@@ -2,16 +2,16 @@
 
 ## What this app is
 
-An 8-step AI-assisted Tech Portfolio wizard for the **Maejo University Deep Mentorship Program (FY2569)**. Faculty/researchers (future mentors for agriculture/food/health students) draft their Tech Portfolio one component at a time with AI suggestions, then assemble and export to Google Docs. A separate **Mentoring Plan** module drafts a 3-session AI-assisted mentoring plan per mentee project.
+An 8-step AI-assisted Tech Portfolio wizard for researchers and faculty. Originally built for the **Maejo University Deep Mentorship Program (FY2569)**; prompts are now institution- and domain-agnostic, adapting to each researcher's own profile fields. Faculty/researchers draft their Tech Portfolio one component at a time with AI suggestions, then assemble and export to Google Docs. A separate **Mentoring Plan** module drafts a 3-session AI-assisted mentoring plan per mentee project.
 
-**The UI and all AI output are in Thai.** Prompt templates in `client/src/prompts.js` are written in Thai using the RTCF structure (Role/Task/Context/Format).
+**The UI and all AI output are in Thai.** Prompt templates in `client/src/prompts.js` are written in Thai using the RTCF structure (Role/Task/Context/Format). Domain-specific text (e.g. research field, institution) is injected dynamically from `profile.domain` and `profile.institution`.
 
 **Stack:**
 - Frontend: React 18 + Vite 5 + Tailwind CSS (`client/`)
 - Backend: Node.js 18+ + Express (`server.js`)
-- AI: OpenRouter (configurable model via `OPENROUTER_MODEL`)
+- AI: OpenRouter (configurable model via `OPENROUTER_MODEL` or Admin panel)
 - Auth: Google OAuth 2.0 — server-side authorization-code flow, optional email allowlist
-- Persistence: Google Drive JSON files (no database); sessions on disk via `session-file-store`
+- Persistence: Local filesystem JSON files under `data/projects/<sub>/` (no database); sessions on disk via `session-file-store`
 
 ## The 8 portfolio steps
 
@@ -32,15 +32,30 @@ The canonical step list is the `STEPS` array in `client/src/prompts.js`. "ดู
 
 Separate page (`mentoringPlan` in the top-level router) that builds an AI-assisted mentoring plan from a completed portfolio: an overview plus 3 sessions (สำรวจและสร้างความไว้วางใจ / เจาะลึกและพัฒนา / วางแผนก้าวต่อไป), each with goal, diagnostic questions, gaps to close, and success markers.
 
-- `client/src/pages/MentoringPlanPage.jsx` — page logic
+- `client/src/pages/MentoringPlanPage.jsx` — page logic (accepts `readOnly` prop for admin view)
 - `client/src/prompts/mentoringPlanPrompts.js` — overview / full-draft / single-field prompts
-- `client/src/components/mentoringPlan/` — `OverviewPanel.jsx`, `SessionPanel.jsx`
+- `client/src/components/mentoringPlan/` — `OverviewPanel.jsx`, `SessionPanel.jsx` (both accept `readOnly` prop)
+
+## Admin panel
+
+Accessible to emails listed in `ADMIN_EMAILS` (.env only). Three tabs:
+
+| Tab | Purpose |
+|-----|---------|
+| ตั้งค่า | Toggle app on/off, manage allowed emails, set AI model, restart server |
+| รายงานการใช้งาน | Usage report with graphs, cost tracking; period shortcuts: วันนี้ / 3 วัน / 7 วัน / 30 วัน / 90 วัน + custom date range |
+| Portfolio ทั้งหมด | View all portfolios grouped by owner; click "ดู" to open full read-only view (Portfolio tab + แผน Mentoring tab) |
+
+The exit button ("← ออกจากโหมดผู้ดูแล") returns admin to the project list without logging out.
+
+New projects store `ownerEmail` and `ownerName` in the JSON file so the admin listing can identify owners.
 
 ## Local development (no Docker)
 
 ```bash
 # First time: add GOOGLE_CLIENT_SECRET to .env (see below)
 npm install
+npm --prefix client install   # install frontend deps separately if needed
 
 # Start both servers concurrently:
 npm run dev
@@ -57,13 +72,13 @@ Sessions are stored in `./sessions/` (7-day TTL), so login survives server resta
 ## Production (Docker)
 
 ```bash
-# Build and start
-docker compose build && docker compose up -d
+# Build and start (required after any frontend or prompt change)
+docker compose up --build -d
 
 # View logs
 docker compose logs -f
 
-# Quick restart (server.js only)
+# Quick restart (server.js changes only — no frontend rebuild)
 docker compose restart
 ```
 
@@ -79,14 +94,15 @@ Production URL: `https://eng-ai.buu.ac.th/techportfolio`
 | Variable | Purpose |
 |----------|---------|
 | `OPENROUTER_API_KEY` | OpenRouter API key |
-| `OPENROUTER_MODEL` | Model slug (default: `qwen/qwen3-235b-a22b`) |
+| `OPENROUTER_MODEL` | Model slug (default: `qwen/qwen3-235b-a22b`); overridable at runtime via Admin panel |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret (**required for auth**) |
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL (`http://localhost:3000/api/auth/google/callback` in dev) |
 | `SESSION_SECRET` | Express session signing secret |
 | `PORT` | Express port (keep `3000`) |
 | `ALLOWED_ORIGIN` | CORS + redirect target (`http://localhost:5173` in dev) |
-| `ALLOWED_EMAILS` | Comma-separated email allowlist; **empty = open access** |
+| `ALLOWED_EMAILS` | Comma-separated email allowlist; **empty = open access**; overridable via Admin panel |
+| `ADMIN_EMAILS` | Comma-separated admin emails; grants access to Admin panel; **.env only, never via API** |
 
 ## Google Cloud setup (one-time)
 
@@ -100,14 +116,16 @@ Production URL: `https://eng-ai.buu.ac.th/techportfolio`
 
 | Path | Purpose |
 |------|---------|
-| `server.js` | Express API — auth, Drive CRUD, AI proxy (rate-limited), CV parse |
-| `client/src/App.jsx` | Top-level router (login → projects → wizard → assembly → mentoring plan) |
+| `server.js` | Express API — auth, local file CRUD, AI proxy (rate-limited), CV parse, admin routes |
+| `client/src/App.jsx` | Top-level router (login → projects → wizard → assembly → mentoring plan → admin → adminViewPortfolio) |
 | `client/src/prompts.js` | `STEPS` array + Thai RTCF prompt templates for all 8 steps — edit here to tune AI output |
 | `client/src/prompts/mentoringPlanPrompts.js` | Mentoring Plan prompt templates |
 | `client/src/components/AIStepPanel.jsx` | Reusable step UI (editable prompt, generate, rewrite, output, save) |
 | `client/src/steps/Step1Profile.jsx` … `Step8CommercializationGaps.jsx` | Per-step components |
-| `client/src/pages/AssemblyPage.jsx` | Portfolio assembly + Google Docs export + infographic brief |
-| `client/src/pages/MentoringPlanPage.jsx` | AI-assisted mentoring plan per mentee project |
+| `client/src/pages/AssemblyPage.jsx` | Portfolio assembly + Google Docs export; accepts `readOnly` prop |
+| `client/src/pages/MentoringPlanPage.jsx` | AI-assisted mentoring plan; accepts `readOnly` prop |
+| `client/src/pages/AdminPage.jsx` | Admin panel (settings / usage report / all portfolios) |
+| `client/src/components/UsageReport.jsx` | Usage report with bar charts, cost tracking, period + resolution selectors |
 | `docs/` | LaTeX source for the Deep Mentor workshop participant manual |
 
 ## API routes
@@ -123,13 +141,19 @@ All `/api/projects*`, `/api/ai/*`, and `/api/cv/*` routes require an authenticat
 | `GET /api/auth/me` | Current user or 401 |
 | `POST /api/auth/logout` | Destroy session |
 | `POST /api/ai/complete` | AI proxy → OpenRouter (rate-limited, 429 retry on client) |
-| `GET /api/projects` | List `.techport.json` files in Drive |
-| `POST /api/projects` | Create new project file |
+| `GET /api/projects` | List user's `.techport.json` files |
+| `POST /api/projects` | Create new project file (stores `ownerEmail`, `ownerName`) |
 | `GET /api/projects/:id` | Load project |
 | `PUT /api/projects/:id` | Save/autosave project |
 | `DELETE /api/projects/:id` | Delete project (confirmation in UI) |
 | `POST /api/projects/:id/export-doc` | Export portfolio as Google Doc |
 | `POST /api/cv/upload` | Upload + parse PDF/DOCX CV |
+| `GET /api/admin/config` | Get admin config (requireAdmin) |
+| `PUT /api/admin/config` | Update admin config — appEnabled, allowedEmails, model (requireAdmin) |
+| `POST /api/admin/restart` | Graceful server restart (requireAdmin) |
+| `GET /api/admin/usage` | Usage log data for report (requireAdmin) |
+| `GET /api/admin/projects` | List all portfolios across all users, grouped by owner (requireAdmin) |
+| `GET /api/admin/projects/:sub/:id` | Load a specific user's portfolio by owner sub + project id (requireAdmin) |
 
 ## Sub-path constraint (production)
 
