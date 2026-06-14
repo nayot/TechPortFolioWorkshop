@@ -11,6 +11,8 @@ import Step6Impact from '../steps/Step6Impact.jsx';
 import Step7Reflection from '../steps/Step7Reflection.jsx';
 import Step8CommercializationGaps from '../steps/Step8CommercializationGaps.jsx';
 
+const CORE_STEPS = ['profile', 'skills', 'projects', 'process'];
+
 const STEP_COMPONENTS = {
   profile: Step1Profile,
   skills: Step2Skills,
@@ -99,8 +101,8 @@ export default function WizardPage({ projectMeta, initialData, onAssemble, onBac
             <button onClick={onBack} className="text-sm text-warm-muted hover:text-navy transition-colors">← รายการ Portfolio</button>
             <button
               onClick={() => onAssemble(project)}
-              disabled={completedSteps.length < STEPS.length}
-              title={completedSteps.length < STEPS.length ? `ยังเหลืออีก ${STEPS.length - completedSteps.length} ขั้นตอน` : ''}
+              disabled={!CORE_STEPS.every(id => completedSteps.includes(id))}
+              title={!CORE_STEPS.every(id => completedSteps.includes(id)) ? `กรุณาทำขั้นตอนที่ 1–4 ให้ครบก่อน` : ''}
               className="px-4 py-2 text-sm rounded-lg font-semibold transition-colors disabled:cursor-not-allowed disabled:bg-warm-border disabled:text-warm-muted enabled:bg-navy enabled:text-white enabled:hover:bg-navy-hover enabled:border-2 enabled:border-navy"
             >
               ดูภาพรวม Portfolio →
